@@ -91,6 +91,14 @@ state (listener.message + clock) + 5 questions
  spin() in Python → CRATE[vibe][energy_level] + "throwback"/"instrumental" → Spotify search
 ```
 
+### End-to-end sequence
+
+![Sequence diagram of the browser, Python server, Jev API, and Spotify](docs/images/jev-dj-sequence.png)
+
+### How spin() picks a query
+
+![Decision flow from five typed answers to a Spotify search query](docs/images/jev-dj-decision-flow.png)
+
 ## Web UI
 
 ```bash
@@ -99,11 +107,19 @@ uv run jev-dj-ui              # http://127.0.0.1:8000  (--port to change)
 
 The same `ask_jev()` + `spin()`, drawn instead of printed, in a retro pixel style. **jevbot** (a pixel crab in DJ headphones) runs a pixel turntable, and there's one LED-segment chart per primitive: vibe probabilities (Choice), energy levels with the expected-score line (Score), and Noul meters with the thresholds your code uses. "How jevbot decided" draws `spin()` as a row of gates, next to the `CRATE` grid with the picked cell lit.
 
-![Jev DJ web UI in the light theme after a sample spin](docs/images/jev-dj-light.png)
-
 **Inside jevbot** is an 8-stop strip (you → state → ask → Jev → answers → spin() → crate → play) that lights up live during each spin; the packet waits at *Jev* for as long as the API call takes. Click any stop, or **? How it works**, to open a step-by-step walkthrough of that exact spin: the `state` that was sent, the five typed questions, the one parallel call, the answers, each gate in `spin()`, and the crate lookup. Use ← → to step, or turn on Auto.
 
 The server (`src/jev_dj/web.py`, stdlib only) keeps your API key off the page and keeps recent answers in memory, so breaking a tie in the browser re-spins without calling Jev again.
+
+### Screenshots
+
+#### Light theme
+
+![Jev DJ web UI in the light theme after a sample spin](docs/images/jev-dj-light.png)
+
+#### Dark theme
+
+![Jev DJ web UI in the dark theme after a sample spin](docs/images/jev-dj-dark.png)
 
 ## Play on your Spotify
 
