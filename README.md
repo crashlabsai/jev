@@ -1,8 +1,7 @@
-# jev-triage
+# jev
 
 A tiny learning project for [Jev](https://docs.typesafe.ai/) (TypeSafe's System One model).
 
-**Idea:** your code owns control flow. Jev only answers narrow typed questions about a support ticket. You combine those answers into a routing decision.
 
 ## What it teaches
 
@@ -54,7 +53,9 @@ Questions in one request are evaluated **in parallel and independently**. Asking
 
 > **New to Jev?** Start with [How jev-dj works](docs/how-jev-dj-works.md): one real spin, stop by stop, with diagrams.
 
-A creative second project: describe your moment and the DJ picks the music. Jev never names a song. It answers five typed questions, and `spin()` in Python maps those answers onto a crate of genres we own.
+[Browse the screenshots and diagrams](docs/visuals.md).
+
+Describe your moment and the DJ picks the music. Jev never names a song. It answers five typed questions, and `spin()` in Python maps those answers onto a crate of genres we own.
 
 | Concept | Where |
 |---------|--------|
