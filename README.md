@@ -54,6 +54,8 @@ Questions in one request are evaluated **in parallel and independently**. Asking
 
 > **New to Jev?** Start with [How jev-dj works](docs/how-jev-dj-works.md): one real spin, stop by stop, with diagrams.
 
+[Browse the screenshots and diagrams](docs/visuals.md).
+
 A creative second project: describe your moment and the DJ picks the music. Jev never names a song. It answers five typed questions, and `spin()` in Python maps those answers onto a crate of genres we own.
 
 | Concept | Where |
@@ -75,6 +77,8 @@ uv run jev-dj --raw --time 23:30 "Can't sleep, thinking about her."
 
 ## How one spin works
 
+![Eight stops from your moment through Jev and Python to Spotify](docs/images/jev-dj-overview.png)
+
 ```
 state (listener.message + clock) + 5 questions
         │
@@ -95,6 +99,8 @@ uv run jev-dj-ui              # http://127.0.0.1:8000  (--port to change)
 ```
 
 The same `ask_jev()` + `spin()`, drawn instead of printed, in a retro pixel style. **jevbot** (a pixel crab in DJ headphones) runs a pixel turntable, and there's one LED-segment chart per primitive: vibe probabilities (Choice), energy levels with the expected-score line (Score), and Noul meters with the thresholds your code uses. "How jevbot decided" draws `spin()` as a row of gates, next to the `CRATE` grid with the picked cell lit.
+
+![Jev DJ web UI in the light theme after a sample spin](docs/images/jev-dj-light.png)
 
 **Inside jevbot** is an 8-stop strip (you → state → ask → Jev → answers → spin() → crate → play) that lights up live during each spin; the packet waits at *Jev* for as long as the API call takes. Click any stop, or **? How it works**, to open a step-by-step walkthrough of that exact spin: the `state` that was sent, the five typed questions, the one parallel call, the answers, each gate in `spin()`, and the crate lookup. Use ← → to step, or turn on Auto.
 
