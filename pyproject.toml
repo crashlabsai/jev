@@ -1,0 +1,26 @@
+[project]
+name = "jev-triage"
+version = "0.1.0"
+description = "Learn Jev: support-ticket triage with TypeSafe System One"
+readme = "README.md"
+authors = [
+    { name = "Ryan Junejo", email = "ryanjunejo1@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.3",
+    "typesafe-sdk>=0.7.1",
+]
+
+[project.scripts]
+jev-triage = "jev_triage:main"
+jev-dj = "jev_dj:main"
+jev-dj-ui = "jev_dj.web:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["jev_triage", "jev_dj"]

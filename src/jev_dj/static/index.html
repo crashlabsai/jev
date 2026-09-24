@@ -1,0 +1,1944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jev dj · jevbot</title>
+<link rel="icon" id="favicon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap">
+<style>
+  /* ---- Tokens: "paper" (light) and "night" (dark). Clay accent after Claude's pixel mascot ---- */
+  :root {
+    color-scheme: light;
+    --page: #f0eee6;
+    --surface: #faf9f5;
+    --sunk: #e8e6dc;
+    --ink: #141413;
+    --ink-2: #3d3d3a;
+    --muted: #6f6e68;
+    --line: #141413;
+    --drop: #cfcbbe;
+    --grid: #dcd9ce;
+    --accent: #c8603e;      /* validated against --surface */
+    --accent-ink: #faf9f5;
+    --track: #f2dcd2;       /* lighter clay step: unlit meter cells */
+    --off: #e6e3d9;         /* unlit chart cells */
+    --deemph: #b4b1a6;
+    --bot: #d97757;
+    --bot-eye: #141413;
+    --phones: #3d3d3a;
+    --deck-plinth: #e3e0d5;
+    --deck-edge: #141413;
+    --deck-arm: #6f6e68;
+    --deck-head: #3d3d3a;
+    --scan: transparent;
+    --b: 4px;               /* pixel border thickness */
+    --lift: 0px;            /* hard drop-shadow offset */
+    --f-display: "Press Start 2P", ui-monospace, Menlo, monospace;
+    --f-label: "Silkscreen", ui-monospace, Menlo, monospace;
+    --f-body: "VT323", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page: #141413;
+      --surface: #262624;
+      --sunk: #1c1c1b;
+      --ink: #faf9f5;
+      --ink-2: #c2c0b6;
+      --muted: #8c8b84;
+      --line: #8c8b84;
+      --drop: #000000;
+      --grid: #2a2a28;
+      --accent: #d77452;
+      --accent-ink: #141413;
+      --track: #4a2c22;
+      --off: #32312e;
+      --deemph: #5e5d57;
+      --phones: #c2c0b6;
+      --deck-plinth: #1c1c1b;
+      --deck-edge: #5e5d59;
+      --deck-arm: #c2c0b6;
+      --deck-head: #8c8b84;
+      --scan: rgba(0, 0, 0, 0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #141413;
+    --surface: #262624;
+    --sunk: #1c1c1b;
+    --ink: #faf9f5;
+    --ink-2: #c2c0b6;
+    --muted: #8c8b84;
+    --line: #8c8b84;
+    --drop: #000000;
+    --grid: #2a2a28;
+    --accent: #d77452;
+    --accent-ink: #141413;
+    --track: #4a2c22;
+    --off: #32312e;
+    --deemph: #5e5d57;
+    --phones: #c2c0b6;
+    --deck-plinth: #1c1c1b;
+    --deck-edge: #5e5d59;
+    --deck-arm: #c2c0b6;
+    --deck-head: #8c8b84;
+    --scan: rgba(0, 0, 0, 0.16);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    font: 22px/1.15 var(--f-body);
+    /* Dot-grid paper: a 2px dot every 16px */
+    background-color: var(--page);
+    background-image:
+      linear-gradient(90deg, var(--page) 14px, transparent 14px),
+      linear-gradient(var(--page) 14px, var(--grid) 14px);
+    background-size: 16px 16px;
+  }
+  /* CRT scanlines (night theme only; transparent on paper) */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(to bottom, transparent 0 2px, var(--scan) 2px 4px);
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 28px 88px; }
+  [hidden] { display: none !important; }
+  code { font-family: var(--f-body); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* ---- Pixel primitives ---- */
+  /* Four offset shadows draw a border with notched corners; the fifth is the hard drop shadow */
+  .px {
+    --bc: var(--line);
+    box-shadow:
+      0 calc(var(--b) * -1) 0 0 var(--bc),
+      0 var(--b) 0 0 var(--bc),
+      calc(var(--b) * -1) 0 0 0 var(--bc),
+      var(--b) 0 0 0 var(--bc),
+      var(--lift) var(--lift) 0 var(--b) var(--drop);
+  }
+  svg.sprite { display: block; flex: none; }
+  .c-o { fill: var(--bot); }
+  .c-k { fill: var(--bot-eye); }
+  .c-h { fill: var(--phones); }
+  .c-t { fill: #6a9bcc; }
+  .c-x { fill: currentColor; }
+  .c-y { fill: var(--accent); }
+  .c-L { fill: var(--line); }
+  .c-W { fill: var(--surface); }
+
+  .eyebrow { font: 14px/1.1 var(--f-label); text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  label.eyebrow { display: block; margin-bottom: 10px; }
+  .muted { color: var(--muted); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: 700 15px/1 var(--f-label); text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 11px 14px; border: 0; cursor: pointer; text-decoration: none; white-space: nowrap;
+    background: var(--surface); color: var(--ink);
+    --b: 3px; --lift: 4px;
+  }
+  .btn:hover { background: var(--sunk); }
+  .btn:active { transform: translate(4px, 4px); --lift: 0px; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn:disabled { opacity: 0.6; cursor: progress; }
+  .btn.small { padding: 8px 10px; font-size: 13px; }
+  .btn .num { font: 18px/1 var(--f-body); opacity: 0.8; }
+  .icon-btn { padding: 8px; }
+  .link-btn { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+  textarea:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible, [tabindex]:focus-visible {
+    outline: 3px dashed var(--accent); outline-offset: 6px;
+  }
+
+  /* ---- Header ---- */
+  header.top { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-name { font: 16px/1 var(--f-display); letter-spacing: 0.02em; }
+  .brand-sub { font: 13px/1 var(--f-label); color: var(--muted); margin-top: 8px; text-transform: uppercase; }
+  .tagline { flex: 1; min-width: 240px; margin: 0; color: var(--ink-2); }
+  .header-actions { margin-left: auto; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .sp-status { display: flex; align-items: center; gap: 8px; font-size: 20px; color: var(--ink-2); white-space: nowrap; }
+  .sp-dot { width: 8px; height: 8px; background: #3f8f3a; }
+
+  /* ---- Cards & controls ---- */
+  .card { background: var(--surface); padding: 22px; --lift: 6px; }
+  .stage { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px; margin-top: 30px; }
+  textarea, input[type="time"] {
+    width: 100%; font: 24px/1.1 var(--f-body); color: var(--ink); background: var(--sunk);
+    border: 0; padding: 10px 12px; caret-color: var(--accent);
+    box-shadow: 0 -3px 0 0 var(--line), 0 3px 0 0 var(--line), -3px 0 0 0 var(--line), 3px 0 0 0 var(--line),
+      inset 3px 3px 0 0 var(--drop);
+  }
+  textarea { min-height: 116px; resize: vertical; display: block; }
+  .row { display: flex; gap: 20px; align-items: end; margin-top: 20px; }
+  .row .grow { flex: 1; }
+  .hint { color: var(--muted); font-size: 19px; margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding: 2px; }
+  .chip {
+    font: 13px/1 var(--f-label); text-transform: uppercase; color: var(--ink-2); background: var(--surface);
+    border: 0; padding: 6px 8px; cursor: pointer; --b: 2px;
+  }
+  .chip:hover { background: var(--accent); color: var(--accent-ink); }
+  .error { margin-top: 16px; color: var(--ink); }
+  .autoplay { display: flex; align-items: center; gap: 10px; margin-top: 20px; color: var(--ink-2); cursor: pointer; }
+  .autoplay input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
+
+  /* ---- Deck: pixel turntable + jevbot ---- */
+  .deck { display: flex; gap: 26px; align-items: center; }
+  .turntable { flex: none; line-height: 0; }
+  .deck-canvas { width: 240px; height: 192px; image-rendering: pixelated; display: block; }
+  .nowplaying { min-width: 0; flex: 1; }
+  .hero { font: 20px/1.5 var(--f-display); margin: 10px 0 8px; overflow-wrap: anywhere; }
+  .meta { color: var(--ink-2); margin-bottom: 16px; }
+  .actions { display: flex; gap: 16px; flex-wrap: wrap; }
+  .sp-now { margin-top: 14px; color: var(--ink-2); }
+  .sp-now a { color: var(--ink); }
+
+  .bot-row { display: flex; align-items: flex-end; gap: 26px; margin-top: 24px; }
+  .bubble { position: relative; flex: 1; background: var(--surface); padding: 12px 14px; --b: 3px; min-height: 64px; }
+  .bubble-tail { position: absolute; left: -15px; bottom: 10px; }
+  .bubble p { margin: 0; }
+  .gate-options { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+  .note { margin-top: 14px; color: var(--ink-2); }
+
+  /* ---- jevbot ---- */
+  .bot { position: relative; display: inline-block; line-height: 0; flex: none; }
+  .bot-glyph {
+    position: absolute; top: calc(var(--s) * -2); right: calc(var(--s) * -3);
+    font: max(10px, calc(var(--s) * 3)) / 1 var(--f-display); color: var(--ink-2); white-space: nowrap;
+  }
+
+  /* ---- Pipeline strip: the 8 stops of one spin ---- */
+  .section-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .section-head h2 { font: 14px/1.3 var(--f-display); margin: 0; }
+  .section-head .sub { color: var(--muted); flex: 1; min-width: 200px; }
+  .pipeline { margin-top: 40px; }
+  .pipe-wrap { position: relative; margin-top: 14px; padding-top: 30px; }
+  .pipe {
+    --box: 52px; --gap: 12px;
+    list-style: none; margin: 0; padding: 0;
+    display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 28px var(--gap);
+  }
+  .pipe.mini { --box: 38px; --gap: 6px; }
+  .stop { position: relative; display: flex; justify-content: center; }
+  .stop:not(:last-child)::after {
+    content: ""; position: absolute; height: 4px;
+    top: calc(var(--box) / 2 - 2px);
+    left: calc(50% + var(--box) / 2 + 8px);
+    width: calc(100% + var(--gap) - var(--box) - 16px);
+    background: repeating-linear-gradient(90deg, var(--deemph) 0 4px, transparent 4px 8px);
+  }
+  .stop.flow::after { background: repeating-linear-gradient(90deg, var(--accent) 0 4px, transparent 4px 8px); }
+  .station {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: 13px/1 var(--f-label); text-transform: uppercase; color: var(--muted);
+  }
+  .pipe.mini .station { font-size: 11px; gap: 8px; }
+  .station-box {
+    width: var(--box); height: var(--box); display: grid; place-items: center;
+    background: var(--surface); color: var(--deemph); --b: 3px;
+  }
+  .station:hover .station-box { transform: translateY(-3px); }
+  .station.lit { color: var(--ink); }
+  .station.lit .station-box { color: var(--ink); }
+  .station.active .station-box { background: var(--accent); color: var(--accent-ink); }
+  .station.active .c-y { fill: var(--accent-ink); }
+  .station.waiting .station-box { animation: blink 0.5s steps(1) infinite; }
+  .station.error .station-box { background: var(--ink); color: var(--surface); }
+  @keyframes blink { 50% { background: var(--surface); color: var(--ink); } }
+  .packet { position: absolute; top: 0; left: 0; transition: transform 0.16s steps(3); line-height: 0; }
+  .packet.appear { transition: none; }
+
+  /* ---- Answers ---- */
+  .answers { transition: opacity 0.2s; margin-top: 44px; }
+  .stage-loading .answers { opacity: 0.45; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 18px; }
+  .chart-card h3 { margin: 0; font: 700 18px/1.2 var(--f-label); text-transform: uppercase; }
+  .kind { color: var(--muted); font-weight: 400; }
+  .caption { color: var(--muted); font-size: 19px; margin: 6px 0 16px; }
+  .num { font: 20px/1 var(--f-body); color: var(--ink-2); text-align: right; }
+
+  /* LED segments: every chart is built from these cells */
+  .seg { --cell-off: var(--off); display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; height: 14px; }
+  .seg i { background: var(--off); }
+  .seg i.on { background: var(--deemph); }
+  .seg.is-pick i.on { background: var(--accent); }
+  .seg.v { grid-template-columns: none; grid-template-rows: repeat(var(--n), minmax(0, 1fr)); width: 28px; height: 120px; }
+
+  .hbar-row { display: grid; grid-template-columns: 124px minmax(0, 1fr) 40px; align-items: center; gap: 10px; padding: 4px 0; }
+  .hbar-label { display: flex; align-items: center; gap: 8px; color: var(--ink-2); white-space: nowrap; }
+  .hbar-label svg { color: var(--ink-2); }
+
+  .eq { margin-top: 4px; }
+  .score-label-row { position: relative; height: 20px; }
+  .score-label { position: absolute; transform: translateX(-50%); font: 12px/1 var(--f-label); text-transform: uppercase; white-space: nowrap; }
+  .eq-plot { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 3px solid var(--line); padding-bottom: 3px; }
+  .eq-col { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .eq-col .num { background: var(--surface); padding: 0 3px; }
+  .score-line { position: absolute; z-index: 0; top: -4px; bottom: 0; width: 3px; margin-left: -1px; background: var(--ink-2); }
+  .xlabels { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 8px; text-align: center; }
+  .xlabels span { font-size: 18px; color: var(--muted); line-height: 1; }
+  .xlabels b { display: block; font: 12px/1.4 var(--f-label); color: var(--ink-2); }
+
+  .meter-block { margin-top: 18px; }
+  .meter-block + .meter-block { margin-top: 16px; }
+  .meter-head { display: flex; justify-content: space-between; gap: 8px; }
+  .meter-head .name { font: 700 14px/1.4 var(--f-label); text-transform: uppercase; }
+  .meter-head .q { color: var(--ink-2); }
+  .meter-head .val { font: 20px/1 var(--f-body); }
+  .meter { position: relative; padding: 8px 0; }
+  .meter .seg { --cell-off: var(--track); height: 12px; }
+  .meter .seg i { background: var(--track); }
+  .meter .seg i.on { background: var(--accent); }
+  .meter-tick { position: absolute; top: 3px; bottom: 3px; width: 3px; margin-left: -1px; background: var(--ink); }
+  .meter-tick::before { content: ""; position: absolute; top: -3px; left: -3px; width: 9px; height: 3px; background: var(--ink); }
+  .meter-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 18px; color: var(--muted); line-height: 1.05; }
+  .meter-foot .effect { color: var(--ink-2); text-align: right; }
+
+  /* ---- Decision: gates + crate ---- */
+  .two { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 6fr); gap: 28px; margin-top: 28px; }
+  .two h3 { margin: 0; font: 700 18px/1.2 var(--f-label); text-transform: uppercase; }
+  ol.gates { list-style: none; margin: 14px 0 0; padding: 0; counter-reset: gate; }
+  .gate-row {
+    counter-increment: gate;
+    display: grid; grid-template-columns: 28px 132px minmax(0, 1fr) 52px; gap: 4px 10px; align-items: center;
+    padding: 8px 0; border-bottom: 2px solid var(--grid);
+  }
+  .gate-row::before { content: counter(gate); font: 12px/1 var(--f-display); color: var(--muted); }
+  .gate-name { font: 700 14px/1.2 var(--f-label); text-transform: uppercase; }
+  .gate-test { color: var(--ink-2); }
+  .gate-effect { grid-column: 3 / -1; color: var(--ink); }
+  .verdict { font: 700 12px/1 var(--f-label); text-transform: uppercase; text-align: center; padding: 5px 0; --b: 2px; }
+  .v-yes { background: var(--accent); color: var(--accent-ink); }
+  .v-no { background: var(--surface); color: var(--ink); }
+  .v-skip { background: transparent; color: var(--muted); --bc: var(--deemph); }
+  .v-you { background: var(--ink); color: var(--surface); }
+  ol.logged { margin: 8px 0 0; padding-left: 28px; color: var(--ink-2); }
+  ol.logged li { padding: 2px 0; }
+  .logged-head { margin-top: 18px; }
+
+  .crate-scroll { overflow-x: auto; padding: 4px; margin-top: 12px; }
+  table.crate { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 19px; }
+  .crate th, .crate td { padding: 5px 6px; text-align: left; line-height: 1; }
+  .crate thead th { font: 11px/1.3 var(--f-label); text-transform: uppercase; color: var(--muted); vertical-align: bottom; }
+  .crate thead th b { display: block; color: var(--ink-2); }
+  .crate tbody th { font: 12px/1 var(--f-label); text-transform: uppercase; white-space: nowrap; color: var(--ink-2); }
+  .crate tbody th > * { vertical-align: middle; }
+  .crate tbody th svg { display: inline-block; margin-right: 6px; }
+  .crate td { background: var(--sunk); color: var(--ink-2); }
+  .crate td.cross, .crate tr.scan td, .crate td.scan { background: var(--track); color: var(--ink); }
+  .crate td.pick { background: var(--accent); color: var(--accent-ink); }
+  .crate th.on, .crate tr.on th { color: var(--ink); }
+  .scanning .crate td.cross, .scanning .crate td.pick { background: var(--sunk); color: var(--ink-2); }
+  .scanning .crate tr.scan td, .scanning .crate td.scan { background: var(--track); color: var(--ink); }
+  .scanning .crate tr.scan td.scan { background: var(--accent); color: var(--accent-ink); }
+  .scanning .assembly { visibility: hidden; }
+  .landed .crate td.pick { animation: pop 0.3s steps(3); }
+  .landed .word { animation: pop 0.3s steps(3) backwards; animation-delay: calc(var(--i) * 260ms + 150ms); }
+  .crate-note { color: var(--muted); font-size: 18px; margin: 8px 0 0; }
+  .assembly { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; padding: 4px; }
+  .word { display: inline-flex; flex-direction: column; gap: 4px; padding: 6px 10px; background: var(--surface); --b: 3px; }
+  .word b { font: 700 15px/1 var(--f-label); text-transform: uppercase; }
+  .word small { font-size: 16px; color: var(--muted); }
+  .word.main { background: var(--accent); color: var(--accent-ink); }
+  .word.main small { color: var(--accent-ink); opacity: 0.85; }
+
+  table.all { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 20px; }
+  table.all th { text-align: left; font: 12px/1.2 var(--f-label); text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 3px solid var(--line); }
+  table.all td { padding: 8px; border-bottom: 2px solid var(--grid); vertical-align: top; color: var(--ink-2); }
+  table.all td:first-child { color: var(--ink); }
+  table.all .num, table.all th.num { text-align: right; }
+
+  .tip {
+    position: fixed; z-index: 60; pointer-events: none; padding: 8px 10px;
+    background: var(--ink); color: var(--surface); display: flex; flex-direction: column; gap: 2px; max-width: 260px;
+    --bc: var(--ink); --b: 3px;
+  }
+  .tip strong { font: 16px/1 var(--f-display); font-weight: 400; }
+  .tip span { opacity: 0.8; font-size: 19px; }
+
+  /* ---- Walkthrough (dialog) ---- */
+  dialog.tour {
+    padding: 0; border: 0; background: transparent; color: var(--ink);
+    width: min(1060px, calc(100vw - 32px)); max-width: none; max-height: calc(100vh - 24px); overflow: visible;
+    margin-top: max(12px, 3vh);
+  }
+  dialog.tour::backdrop {
+    background: repeating-conic-gradient(rgba(20, 20, 19, 0.88) 0 25%, rgba(20, 20, 19, 0.66) 0 50%) 0 0 / 4px 4px;
+  }
+  .tour-frame {
+    background: var(--surface); padding: 20px 24px 22px; margin: 10px;
+    max-height: calc(100vh - 44px); overflow: auto; --lift: 8px;
+  }
+  .tour-bar { display: flex; align-items: center; gap: 16px; }
+  .tour-count { font: 13px/1 var(--f-label); text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  #tour-title { font: 16px/1.3 var(--f-display); margin: 0; flex: 1; }
+  .tour-frame .pipe { margin: 22px 4px 6px; }
+  .tour-scene { min-height: 390px; margin: 22px 0 20px; display: grid; align-items: center; }
+  .scene { min-width: 0; }
+  .dialog-box {
+    position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center;
+    background: var(--page); padding: 14px 18px; cursor: pointer; margin: 4px;
+  }
+  .dialog-name { font: 12px/1 var(--f-display); color: var(--ink-2); margin-bottom: 8px; }
+  #tour-text { margin: 0; min-height: 3.45em; font-size: 25px; line-height: 1.15; }
+  #tour-text code, .qcard-text code, .speech code { background: var(--sunk); padding: 0 4px; color: var(--ink); }
+  .dialog-caret { position: absolute; right: 16px; bottom: 10px; font: 12px/1 var(--f-display); color: var(--accent); animation: bounce 0.6s steps(1) infinite; }
+  @keyframes bounce { 50% { transform: translateY(3px); } }
+  .tour-controls { display: flex; align-items: center; gap: 16px; margin-top: 22px; flex-wrap: wrap; }
+  .tour-controls .spacer { flex: 1; }
+  .tour-keys { color: var(--muted); font-size: 18px; }
+
+  @keyframes pop { from { opacity: 0; transform: translateY(8px); } }
+  .reveal > * { animation: pop 0.3s steps(3) backwards; animation-delay: calc(var(--i, 0) * 160ms + 150ms); }
+  .animate .seg i.on { animation: cell-on 1ms steps(1) backwards; animation-delay: calc(var(--c) * 40ms + 250ms); }
+  @keyframes cell-on { from { background: var(--cell-off); } }
+
+  /* Scene: your moment */
+  .scene-you { display: flex; align-items: center; justify-content: center; gap: 44px; flex-wrap: wrap; }
+  .you-talk { display: flex; flex-direction: column; gap: 22px; max-width: 560px; min-width: 0; }
+  .speech { position: relative; background: var(--surface); padding: 16px 18px; --b: 4px; --lift: 6px; }
+  .speech-who { font: 12px/1 var(--f-display); color: var(--muted); }
+  .speech-text { margin: 10px 0 0; font-size: 30px; line-height: 1.1; overflow-wrap: anywhere; }
+  .clock-chip { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; padding: 8px 12px; background: var(--sunk); --b: 3px; }
+
+  /* Scene: state */
+  .scene-cols { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 22px; align-items: center; }
+  .codecard { background: var(--sunk); padding: 12px 14px; --b: 3px; min-width: 0; }
+  .codecard-head { font: 12px/1 var(--f-label); text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  pre.code { margin: 0; font: 20px/1.15 var(--f-body); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .jl { padding: 0 4px; }
+  .jl.hl { background: var(--track); }
+  .j-key { color: var(--ink); }
+  .j-str { color: var(--ink-2); }
+  .tag { display: inline-block; margin-left: 10px; font: 11px/1 var(--f-label); text-transform: uppercase; background: var(--accent); color: var(--accent-ink); padding: 3px 5px; vertical-align: 2px; }
+  .arrow-px { color: var(--accent); }
+  .refs { margin: 14px 0 0; color: var(--ink-2); font-size: 20px; }
+
+  /* Scene: questions */
+  .qgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; }
+  .qcard { position: relative; background: var(--surface); padding: 12px; --b: 3px; --lift: 4px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .qcard.spec { background: repeating-linear-gradient(135deg, var(--surface) 0 8px, var(--sunk) 8px 12px); }
+  .qcard-head { display: flex; flex-direction: column; gap: 6px; }
+  .qcard-head b { font: 700 15px/1 var(--f-label); text-transform: uppercase; overflow-wrap: anywhere; }
+  .badge { align-self: flex-start; font: 10px/1 var(--f-display); padding: 4px 5px; background: var(--ink); color: var(--surface); }
+  .qcard-text { margin: 0; font-size: 19px; color: var(--ink-2); line-height: 1.05; }
+  .q-opts { display: flex; flex-direction: column; gap: 4px; font-size: 19px; }
+  .q-opts span { display: flex; align-items: center; gap: 6px; }
+  .q-ladder { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column-reverse; gap: 3px; font-size: 18px; }
+  .q-ladder li { display: flex; gap: 6px; align-items: center; }
+  .q-ladder b { font: 11px/1 var(--f-label); background: var(--sunk); padding: 3px 5px; }
+  .q-noul { display: grid; grid-template-columns: auto 1fr auto; gap: 6px; align-items: center; font-size: 18px; color: var(--muted); }
+  .q-noul .seg { height: 10px; }
+  .q-noul-cap { grid-column: 1 / -1; text-align: center; }
+  .sticker { position: absolute; top: -12px; right: -8px; font: 9px/1 var(--f-display); background: var(--accent); color: var(--accent-ink); padding: 5px 6px; transform: rotate(4deg); }
+
+  /* Scene: the call */
+  .scene-jev { display: grid; grid-template-columns: 170px minmax(0, 1fr) 170px; gap: 18px; align-items: center; }
+  .endpoint { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 10px; background: var(--sunk); --b: 3px; --lift: 5px; text-align: center; }
+  .endpoint b { font: 13px/1 var(--f-display); }
+  .endpoint span { color: var(--muted); font-size: 19px; }
+  .endpoint.jev { animation: jev-busy 5s steps(1) infinite; }
+  @keyframes jev-busy { 28%, 40% { background: var(--accent); color: var(--accent-ink); } }
+  .endpoint.jev span { color: inherit; opacity: 0.8; }
+  .wire { display: flex; flex-direction: column; gap: 6px; padding: 0 6px; }
+  .lane { position: relative; height: 34px; }
+  .lane::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--grid); }
+  .lane-req { margin-bottom: 10px; }
+  .lane-req::before { background: var(--deemph); }
+  .wpacket {
+    position: absolute; top: 50%; translate: 0 -50%; width: 122px; padding: 6px 4px; text-align: center;
+    font: 12px/1 var(--f-label); text-transform: uppercase; background: var(--surface); --b: 2px;
+  }
+  .wpacket.req { background: var(--accent); color: var(--accent-ink); left: calc(100% - 122px); opacity: 0; animation: req-go 5s infinite steps(8, end); }
+  .wpacket.ans { left: 0; animation: ans-back 5s infinite steps(8, end); }
+  @keyframes req-go {
+    0% { left: 0; opacity: 1; }
+    28% { left: calc(100% - 122px); opacity: 1; }
+    34%, 100% { left: calc(100% - 122px); opacity: 0; }
+  }
+  @keyframes ans-back {
+    0%, 38% { left: calc(100% - 122px); opacity: 0; }
+    40% { left: calc(100% - 122px); opacity: 1; }
+    72%, 100% { left: 0; opacity: 1; }
+  }
+  .wire-foot { grid-column: 1 / -1; text-align: center; color: var(--ink-2); margin-top: 10px; }
+  .wire-foot code { background: var(--sunk); padding: 2px 6px; overflow-wrap: anywhere; }
+  .lane-note { text-align: center; font: 11px/1 var(--f-label); text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+
+  /* Scene: answers */
+  .scene-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+  .mini { background: var(--surface); padding: 14px; --b: 3px; min-width: 0; }
+  .mini h4 { margin: 0 0 12px; font: 700 15px/1 var(--f-label); text-transform: uppercase; }
+  .mini .hbar-row { grid-template-columns: 112px minmax(0, 1fr) 36px; }
+  .mini .meter-block:first-child { margin-top: 0; }
+
+  /* Scene: spin() */
+  .scene-spin { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 26px; align-items: start; }
+  .scene-spin ol.gates { margin-top: 0; }
+
+  /* Scene: play */
+  .scene-play { display: flex; align-items: center; justify-content: center; gap: 36px; flex-wrap: wrap; }
+  .scene-play .deck-canvas { width: 300px; height: 240px; }
+  .play-side { min-width: 0; max-width: 420px; }
+  .tally { display: flex; gap: 22px; margin: 14px 0 4px; }
+  .tally div { display: flex; flex-direction: column; gap: 6px; }
+  .tally b { font: 22px/1 var(--f-display); font-weight: 400; }
+  .tally span { color: var(--muted); font-size: 18px; line-height: 1; }
+
+  @media (max-width: 980px) {
+    .stage, .grid3, .two, .scene-answers, .scene-spin { grid-template-columns: minmax(0, 1fr); }
+    .qgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .scene-cols { grid-template-columns: minmax(0, 1fr); }
+    .arrow-px { transform: rotate(90deg); justify-self: center; }
+  }
+  @media (max-width: 760px) {
+    .pipe { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 52px; }
+    .stop:nth-child(4n)::after { display: none; }
+    .scene-jev { grid-template-columns: minmax(0, 1fr); }
+    .wpacket { width: 100px; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 16px 64px; }
+    .deck { flex-direction: column; align-items: flex-start; }
+    .deck-canvas { width: 180px; height: 144px; }
+    .tagline { display: none; }
+    .header-actions { margin-left: 0; }
+    .tour-frame { padding: 16px 14px 18px; }
+    .tour-keys { display: none; }
+    .sp-status { white-space: normal; flex-wrap: wrap; }
+    .qgrid { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .wpacket.req { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span id="brand-bot"></span>
+      <div>
+        <div class="brand-name">JEV DJ</div>
+        <div class="brand-sub">jevbot spins what jev hears</div>
+      </div>
+    </div>
+    <p class="tagline">Jev answers five typed questions about your moment. Python picks the record.</p>
+    <div class="header-actions">
+      <button class="btn small px" id="tour-open" type="button">? How it works</button>
+      <div class="sp-status" id="sp-status"></div>
+      <button class="btn icon-btn px" id="theme" type="button" aria-label="Toggle light or dark theme"></button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <section class="card px" aria-labelledby="booth-title">
+      <label class="eyebrow" id="booth-title" for="moment">Your moment</label>
+      <textarea id="moment" placeholder="Rainy Sunday morning, making pancakes, no plans…"></textarea>
+      <div class="row">
+        <div class="grow">
+          <label class="eyebrow" for="clock">Clock</label>
+          <input type="time" id="clock">
+          <div class="hint">Blank = now. Code puts it in the state, so Jev doesn't guess it.</div>
+        </div>
+        <button class="btn primary px" id="spin" type="button">Spin ▸</button>
+      </div>
+      <div class="eyebrow" style="margin-top: 24px;">Try one</div>
+      <div class="chips" id="samples"></div>
+      <label class="autoplay" id="autoplay-row" hidden>
+        <input type="checkbox" id="autoplay"> Play on my Spotify after each spin
+      </label>
+      <div class="error" id="error" role="alert" hidden></div>
+    </section>
+
+    <section class="card px" aria-live="polite">
+      <div class="deck">
+        <div class="turntable"><canvas class="deck-canvas" id="deck" width="60" height="48" aria-hidden="true"></canvas></div>
+        <div class="nowplaying">
+          <div class="eyebrow">Now playing</div>
+          <div class="hero" id="query">Nothing on the platter</div>
+          <div class="meta" id="meta">Describe your moment, or try a sample.</div>
+          <div class="actions">
+            <button class="btn px" id="sp-play" type="button" hidden>▶ Play on my Spotify</button>
+            <a class="btn px" id="sp-connect" href="/login" hidden>Connect Spotify</a>
+            <a class="btn px" id="play" target="_blank" rel="noopener" hidden>Open in Spotify ↗</a>
+          </div>
+          <div class="sp-now" id="sp-now" role="status" hidden></div>
+        </div>
+      </div>
+      <div class="bot-row">
+        <span id="deck-bot"></span>
+        <div class="bubble px">
+          <span class="bubble-tail" id="bubble-tail"></span>
+          <p id="bubble-text">Tell me your moment. I'll ask Jev five questions and pick a record.</p>
+          <div class="gate-options" id="gate-options"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="pipeline" aria-labelledby="pipe-title">
+    <div class="section-head">
+      <h2 id="pipe-title">Inside jevbot</h2>
+      <span class="sub" id="pipe-status">Eight stops from your words to a record. Spin to watch them light up.</span>
+      <button class="btn small px" id="tour-open-2" type="button">▶ Walkthrough</button>
+    </div>
+    <div class="pipe-wrap" id="pipe-wrap">
+      <ol class="pipe" id="pipe"></ol>
+      <span class="packet" id="packet" hidden></span>
+    </div>
+  </section>
+
+  <div class="answers" id="answers" hidden>
+    <div class="section-head">
+      <h2>What Jev answered</h2>
+      <span class="sub" id="call-meta"></span>
+      <button class="btn small px" id="table-toggle" type="button" aria-expanded="false">Show as table</button>
+    </div>
+
+    <div class="grid3" id="charts">
+      <section class="card px chart-card">
+        <h3>vibe <span class="kind">· Choice</span></h3>
+        <p class="caption">Probability per option. Lit orange: the vibe jevbot played from.</p>
+        <div id="vibe-chart"></div>
+        <div id="vibe-conf"></div>
+      </section>
+      <section class="card px chart-card">
+        <h3>energy <span class="kind">· Score</span></h3>
+        <p class="caption">Probability per level; the line is the expected score. Lit orange: the level <code>energy_level()</code> picked.</p>
+        <div id="energy-chart"></div>
+        <div id="energy-conf"></div>
+      </section>
+      <section class="card px chart-card">
+        <h3>modifiers <span class="kind">· Noul</span></h3>
+        <p class="caption">P(yes) for each statement. The tick is the threshold code uses.</p>
+        <div id="nouls"></div>
+      </section>
+    </div>
+
+    <section class="card px" id="table-view" hidden style="margin-top: 28px;">
+      <h3 style="margin: 0; font: 700 18px/1.2 var(--f-label); text-transform: uppercase;">All answers</h3>
+      <table class="all">
+        <thead>
+          <tr><th>Question</th><th>Type</th><th class="num">Answer</th><th class="num">Confidence</th><th>Probabilities</th></tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </section>
+
+    <div class="two">
+      <section class="card px">
+        <h3>How jevbot decided <span class="kind">· spin() in Python</span></h3>
+        <ol class="gates" id="gates"></ol>
+        <div class="eyebrow logged-head">What spin() logged</div>
+        <ol class="logged" id="reasons"></ol>
+      </section>
+      <section class="card px">
+        <h3>The crate <span class="kind">· CRATE[vibe][level]</span></h3>
+        <div id="crate"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<dialog class="tour" id="tour" aria-labelledby="tour-title">
+  <div class="tour-frame px">
+    <div class="tour-bar">
+      <span class="tour-count" id="tour-count">Step 1 / 8</span>
+      <h2 id="tour-title">Your moment</h2>
+      <button class="btn small px" id="tour-close" type="button" aria-label="Close walkthrough"></button>
+    </div>
+    <ol class="pipe mini" id="tour-pipe"></ol>
+    <div class="tour-scene" id="tour-scene"></div>
+    <div class="dialog-box px" id="dialog-box">
+      <span id="tour-bot"></span>
+      <div>
+        <div class="dialog-name">JEVBOT</div>
+        <p id="tour-text" aria-hidden="true"></p>
+        <p class="visually-hidden" id="tour-sr" aria-live="polite"></p>
+      </div>
+      <span class="dialog-caret" id="tour-caret" aria-hidden="true" hidden>▼</span>
+    </div>
+    <div class="tour-controls">
+      <button class="btn px" id="tour-prev" type="button">◂ Back</button>
+      <button class="btn px" id="tour-auto" type="button" aria-pressed="false">Auto ▸▸</button>
+      <span class="spacer"></span>
+      <span class="tour-keys">← → to step</span>
+      <button class="btn primary px" id="tour-next" type="button">Next ▸</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="tip px" id="tip" role="tooltip" hidden></div>
+
+<script>
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Record-label colours per vibe (decoration: the vibe name and icon always ride along)
+  const VIBE_COLORS = { focus: "#6a9bcc", chill: "#788c5d", hype: "#d97757", melancholy: "#7d7ba8", romantic: "#c46686", uplift: "#d9a441" };
+  let CONFIG = null;
+  let current = null;
+  let SPOTIFY = { configured: false, connected: false };
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (p) => Number(p).toFixed(2);
+  const shortLevel = (i) => CONFIG.energy_levels[i].split(":")[0];
+  const clip = (s, n = 90) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, REDUCED ? 0 : ms));
+  const NS = "http://www.w3.org/2000/svg";
+
+  // Build DOM with textContent only: labels are data, never HTML
+  function el(tag, props = {}, ...kids) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(props)) {
+      if (v == null || v === false) continue;
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else if (k === "style") {
+        for (const [prop, value] of Object.entries(v)) {
+          if (prop.startsWith("--")) node.style.setProperty(prop, value);
+          else node.style[prop] = value;
+        }
+      } else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+    node.append(...kids.flat().filter((kid) => kid != null && kid !== false));
+    return node;
+  }
+
+  function tipAttrs(value, label) {
+    return { tabindex: "0", "data-tip-value": value, "data-tip-label": label };
+  }
+
+  // ---- Pixel art: every sprite is rows of palette letters ('.' = empty) ----
+  const ICONS = {
+    focus: ["..xxxx..", ".x....x.", "x......x", "x......x", "yy....yy", "yy....yy", "yy....yy", "........"],
+    chill: [".x..x...", "..x..x..", "........", "xxxxxx..", "xyyyyxxx", "xyyyyx.x", "xyyyyxxx", ".xxxx..."],
+    hype: ["....yyy.", "...yyy..", "..yyy...", ".yyyyyy.", "...yyy..", "..yyy...", ".yyy....", ".y......"],
+    melancholy: ["...xx...", ".xxxxxx.", "xxxxxxxx", "xxxxxxxx", "........", ".y..y..y", "y..y..y.", "........"],
+    romantic: ["........", ".yy..yy.", "yyyyyyyy", "yyyyyyyy", ".yyyyyy.", "..yyyy..", "...yy...", "........"],
+    uplift: ["x..x..x.", ".x.x.x..", "..yyy...", "xxyyyxx.", "..yyy...", ".x.x.x..", "x..x..x.", "........"],
+    you: ["xxxxxxxx", "x......x", "x.yyyy.x", "x......x", "xxxxxxxx", ".xx.....", ".x......", "........"],
+    state: [".xx..xx.", ".x....x.", ".x....x.", "x..yy..x", ".x....x.", ".x....x.", ".xx..xx.", "........"],
+    ask: ["..xxxx..", ".xx..xx.", ".....xx.", "....xx..", "...xx...", "...xx...", "........", "...yy..."],
+    chip: ["..x..x..", ".xxxxxx.", "xx....xx", ".x.yy.x.", ".x.yy.x.", "xx....xx", ".xxxxxx.", "..x..x.."],
+    bars: ["........", "......xx", "......xx", "...yy.xx", "...yy.xx", "xx.yy.xx", "xx.yy.xx", "xxxxxxxx"],
+    prompt: ["xxxxxxxx", "x......x", "x.x....x", "x..x...x", "x.x.yy.x", "x......x", "xxxxxxxx", "........"],
+    crate: ["..y.y.y.", "..y.y.y.", "xxxxxxxx", "x......x", "xxxxxxxx", "x......x", "xxxxxxxx", "........"],
+    note: ["...xxxxx", "...xxxxx", "...x...x", "...x...x", ".yyx.yyx", "yyyxyyyx", "yyy.yyy.", "........"],
+    clock: ["..xxxx..", ".x....x.", "x..y...x", "x..y...x", "x..yyy.x", "x......x", ".x....x.", "..xxxx.."],
+    theme: ["..xxxx..", ".xxx..x.", "xxxx...x", "xxxx...x", "xxxx...x", "xxxx...x", ".xxx..x.", "..xxxx.."],
+    envelope: ["xxxxxxxxx", "xxyyyyyxx", "xyxyyyxyx", "xyyxyxyyx", "xyyyxyyyx", "xyyyyyyyx", "xxxxxxxxx"],
+    close: ["x.....x", ".x...x.", "..x.x..", "...x...", "..x.x..", ".x...x.", "x.....x"],
+    arrow: ["....x...", "....xx..", "xxxxxxx.", "xxxxxxxx", "xxxxxxx.", "....xx..", "....x..."],
+    tail: ["....L", "...LW", "..LWW", ".LWWW", "LLLLL"],
+  };
+
+  function sprite(rows, scale = 4, cls = "") {
+    const w = rows[0].length, h = rows.length;
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("width", w * scale);
+    svg.setAttribute("height", h * scale);
+    svg.setAttribute("shape-rendering", "crispEdges");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", `sprite ${cls}`.trim());
+    rows.forEach((row, y) => {
+      // One rect per horizontal run of the same colour
+      for (let x = 0; x < w; ) {
+        let run = 1;
+        while (row[x + run] === row[x]) run++;
+        if (row[x] !== ".") {
+          const r = document.createElementNS(NS, "rect");
+          r.setAttribute("x", x);
+          r.setAttribute("y", y);
+          r.setAttribute("width", run);
+          r.setAttribute("height", 1);
+          r.setAttribute("class", `c-${row[x]}`);
+          svg.append(r);
+        }
+        x += run;
+      }
+    });
+    return svg;
+  }
+  const icon = (name, scale = 3) => sprite(ICONS[name] ?? ICONS.note, scale, "icon");
+
+  // ---- jevbot: a Clawd-style pixel crab in DJ headphones, drawn from a grid ----
+  function jevbotGrid({ eyes = "open", arms = "rest", tear = -1, phones = true } = {}) {
+    const g = Array.from({ length: 12 }, () => Array(18).fill("."));
+    const fill = (x0, y0, x1, y1, c) => {
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = c;
+    };
+    fill(3, 2, 14, 9, "o");                                        // body
+    const [ly, ry] = { rest: [6, 6], left: [5, 7], right: [7, 5], down: [7, 7] }[arms];
+    fill(1, ly, 2, ly + 1, "o");                                   // arms
+    fill(15, ry, 16, ry + 1, "o");
+    for (const x of [4, 6, 11, 13]) fill(x, 10, x, 11, "o");       // legs
+    if (phones) {
+      fill(4, 0, 13, 0, "h");                                      // headband
+      fill(2, 1, 3, 1, "h");
+      fill(14, 1, 15, 1, "h");
+      fill(1, 2, 2, 4, "h");                                       // ear cups
+      fill(15, 2, 16, 4, "h");
+    }
+    const EYES = {
+      open: [[5, 3], [5, 4], [12, 3], [12, 4]],
+      blink: [[5, 4], [12, 4]],
+      left: [[4, 3], [4, 4], [11, 3], [11, 4]],
+      right: [[6, 3], [6, 4], [13, 3], [13, 4]],
+      happy: [[5, 3], [4, 4], [6, 4], [12, 3], [11, 4], [13, 4]],
+      sad: [[5, 4], [5, 5], [12, 4], [12, 5]],
+      puzzled: [[5, 3], [5, 4], [12, 4]],
+    };
+    for (const [x, y] of EYES[eyes]) g[y][x] = "k";
+    if (tear >= 0) g[6 + tear][5] = "t";
+    return g.map((row) => row.join(""));
+  }
+
+  // Each mood is a function of the animation tick → one frame
+  const MOODS = {
+    idle: (t) => ({ eyes: t % 18 === 0 ? "blink" : "open" }),
+    listen: (t) => ({ eyes: t % 18 === 0 ? "blink" : "right" }),
+    talk: (t) => ({ eyes: t % 18 === 0 ? "blink" : "open", bob: t % 2 }),
+    think: (t) => ({ eyes: Math.floor(t / 3) % 2 ? "left" : "right", glyph: ".".repeat(1 + (t % 3)) }),
+    happy: (t) => ({ eyes: "happy", bob: Math.floor(t / 2) % 2, glyph: Math.floor(t / 4) % 2 ? "♪" : "" }),
+    hype: (t) => ({ eyes: "happy", arms: t % 2 ? "left" : "right", bob: t % 2, glyph: "♫" }),
+    sleepy: (t) => ({ eyes: "blink", bob: Math.floor(t / 4) % 2, glyph: "z".repeat(1 + (Math.floor(t / 3) % 3)) }),
+    sad: (t) => ({ eyes: "sad", arms: "down", tear: Math.floor(t / 3) % 3 }),
+    confused: (t) => ({ eyes: Math.floor(t / 6) % 2 ? "puzzled" : "open", glyph: "?" }),
+  };
+
+  const BOTS = new Set();
+  const DECKS = new Set();
+  let frame = 0;
+
+  class Bot {
+    constructor(scale, mood = "idle") {
+      this.scale = scale;
+      this.mood = mood;
+      this.key = "";
+      this.art = el("span", { style: { display: "block" } });
+      this.glyph = el("span", { class: "bot-glyph" });
+      this.el = el("span", { class: "bot", "aria-hidden": "true", style: { "--s": `${scale}px` } }, this.art, this.glyph);
+      BOTS.add(this);
+      this.draw(1);
+    }
+    setMood(mood) {
+      if (mood === this.mood) return;
+      this.mood = mood;
+      this.draw(Math.floor(frame / 2) || 1);
+    }
+    draw(t) {
+      const f = (MOODS[this.mood] ?? MOODS.idle)(t);
+      const rows = jevbotGrid(f);
+      const key = rows.join("");
+      if (key !== this.key) {
+        this.key = key;
+        this.art.replaceChildren(sprite(rows, this.scale));
+      }
+      this.art.style.transform = `translateY(${-(f.bob || 0) * this.scale}px)`;
+      this.glyph.textContent = f.glyph ?? "";
+    }
+  }
+
+  // ---- jevbot's mood: typed answers → an expression ----
+  // Moods it can wear: "idle" | "happy" | "hype" | "sleepy" | "sad" | "confused"
+  // `data` is one /api/spin payload: data.spin (vibe, energy_level, ask_listener, …),
+  // data.answers (vibe.confidence, energy.score, wants_lift.noul, …) and data.resolved.
+  function jevbotMood(data) {
+    // TODO(human): choose jevbot's mood from the spin and the answers
+    return "happy";
+  }
+
+  // ---- Pixel turntable: a 60×48 canvas redrawn per frame, scaled up with no smoothing ----
+  const DECK_W = 60, DECK_H = 48;
+  const REC = { x: 23, y: 24, r: 21.5, label: 8.5 };
+  const ARM = { x: 52, y: 6, len: 29, rest: -0.08, play: 0.56 };
+  const hexRGB = (hex) => {
+    const n = parseInt(hex.trim().slice(1), 16);
+    return [n >> 16, (n >> 8) & 255, n & 255];
+  };
+  const angleGap = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  let deckColors = null;
+
+  function readDeckColors() {
+    const css = getComputedStyle(document.documentElement);
+    const v = (name) => hexRGB(css.getPropertyValue(name));
+    deckColors = {
+      plinth: v("--deck-plinth"), edge: v("--deck-edge"), arm: v("--deck-arm"), head: v("--deck-head"), accent: v("--accent"),
+      vinyl: [22, 22, 21], groove: [40, 39, 37], rim: [54, 53, 50], sheen: [80, 78, 73], spindle: [194, 192, 182], ledOff: [70, 69, 65],
+    };
+    for (const d of DECKS) d.dirty = true;
+  }
+
+  function labelTexture(vibe) {
+    const base = hexRGB(VIBE_COLORS[vibe] ?? "#d97757");
+    const ring = base.map((c) => Math.round(c * 0.8));
+    const ink = [250, 249, 245];
+    const art = ICONS[vibe] ?? ICONS.note;
+    const tex = Array.from({ length: 17 }, (_, y) => Array.from({ length: 17 }, (_, x) => {
+      if (Math.hypot(x - 8, y - 8) > 7.6) return ring;
+      const c = art[y - 4]?.[x - 4];
+      return c && c !== "." ? ink : base;
+    }));
+    return { tex, base: ring };
+  }
+
+  // Spotify cover → 17×17 pixel label (throws if the image isn't CORS-clean)
+  function artTexture(img) {
+    const c = el("canvas", { width: 17, height: 17 });
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0, 17, 17);
+    const px = g.getImageData(0, 0, 17, 17).data;
+    const tex = Array.from({ length: 17 }, (_, y) => Array.from({ length: 17 }, (_, x) => {
+      const i = (y * 17 + x) * 4;
+      return Math.hypot(x - 8, y - 8) > 7.6 ? [20, 20, 19] : [px[i], px[i + 1], px[i + 2]];
+    }));
+    return { tex, base: [20, 20, 19] };
+  }
+
+  function bresenham(x0, y0, x1, y1, plot) {
+    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) {
+      plot(x0, y0);
+      if (x0 === x1 && y0 === y1) return;
+      const e2 = 2 * err;
+      if (e2 >= dy) { err += dy; x0 += sx; }
+      if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+  }
+
+  class Deck {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext("2d");
+      this.img = this.ctx.createImageData(DECK_W, DECK_H);
+      this.angle = 0;
+      this.arm = 0;
+      this.mode = "idle";   // idle | loading | playing
+      this.vibe = null;
+      this.label = labelTexture(null);
+      this.dirty = true;
+      DECKS.add(this);
+      this.step();
+    }
+    setMode(mode) { this.mode = mode; this.dirty = true; }
+    setVibe(vibe) {
+      this.vibe = vibe;
+      this.artToken = null;
+      this.label = labelTexture(vibe);
+      this.dirty = true;
+    }
+    setArt(url) {
+      const token = (this.artToken = Symbol("art"));
+      if (!url) return;
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        if (this.artToken !== token) return;
+        try {
+          this.label = artTexture(img);
+          this.dirty = true;
+        } catch {
+          // Tainted canvas: keep the vibe label
+        }
+      };
+      img.src = url;
+    }
+    step() {
+      const target = this.mode === "idle" ? 0 : 1;
+      if (this.arm !== target) {
+        this.arm = REDUCED ? target : Math.max(0, Math.min(1, this.arm + (target > this.arm ? 0.25 : -0.25)));
+        this.dirty = true;
+      }
+      if (this.mode !== "idle" && !REDUCED) {
+        this.angle += this.mode === "loading" ? 0.9 : 0.29;   // ~33 rpm at 12 fps
+        this.dirty = true;
+      }
+      if (this.dirty && deckColors) {
+        this.draw();
+        this.dirty = false;
+      }
+    }
+    draw() {
+      const C = deckColors, d = this.img.data;
+      d.fill(0);
+      const put = (x, y, rgb) => {
+        if (x < 0 || y < 0 || x >= DECK_W || y >= DECK_H) return;
+        const i = (y * DECK_W + x) * 4;
+        d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255;
+      };
+      const block = (x, y, w, h, rgb) => {
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) put(x + i, y + j, rgb);
+      };
+      // Plinth with notched corners
+      for (let y = 0; y < DECK_H; y++) {
+        for (let x = 0; x < DECK_W; x++) {
+          const ex = x === 0 || x === DECK_W - 1, ey = y === 0 || y === DECK_H - 1;
+          if (!(ex && ey)) put(x, y, ex || ey ? C.edge : C.plinth);
+        }
+      }
+      // Record: grooves and sheen stay put; the label rotates (nearest-neighbour, so it stays pixelated)
+      const cos = Math.cos(this.angle), sin = Math.sin(this.angle);
+      const { tex, base } = this.label;
+      for (let y = 0; y < DECK_H; y++) {
+        for (let x = 0; x < DECK_W; x++) {
+          const dx = x - REC.x, dy = y - REC.y, r = Math.hypot(dx, dy);
+          if (r > REC.r) continue;
+          let rgb;
+          if (r <= REC.label) {
+            const sx = Math.round(dx * cos + dy * sin) + 8, sy = Math.round(dy * cos - dx * sin) + 8;
+            rgb = tex[sy]?.[sx] ?? base;
+          } else if (r > REC.r - 1.5) {
+            rgb = C.rim;
+          } else {
+            const a = Math.atan2(dy, dx);
+            const sheen = r > 10.5 && r < 19.5 && (angleGap(a, -2.3) < 0.2 || angleGap(a, 0.84) < 0.2);
+            rgb = sheen ? C.sheen : Math.floor(r) % 3 === 0 ? C.groove : C.vinyl;
+          }
+          put(x, y, rgb);
+        }
+      }
+      put(REC.x, REC.y, C.spindle);
+      // Tonearm swings from rest onto the grooves
+      const theta = ARM.rest + (ARM.play - ARM.rest) * this.arm;
+      const hx = Math.round(ARM.x - ARM.len * Math.sin(theta)), hy = Math.round(ARM.y + ARM.len * Math.cos(theta));
+      bresenham(ARM.x, ARM.y, hx, hy, (x, y) => { put(x, y, C.arm); put(x + 1, y, C.arm); });
+      block(Math.round(ARM.x + 4 * Math.sin(theta)) - 1, Math.round(ARM.y - 4 * Math.cos(theta)) - 1, 3, 3, C.head);
+      block(hx - 1, hy - 1, 3, 4, C.head);
+      block(ARM.x - 2, ARM.y - 2, 5, 5, C.edge);
+      block(ARM.x - 1, ARM.y - 1, 3, 3, C.arm);
+      // Power LED
+      const lit = this.mode === "playing" || (this.mode === "loading" && frame % 2 === 0);
+      block(DECK_W - 6, DECK_H - 5, 2, 2, lit ? C.accent : C.ledOff);
+      this.ctx.putImageData(this.img, 0, 0);
+    }
+  }
+
+  // One ticker for every sprite: 12 fps for decks, 6 fps for bots — choppy on purpose
+  let lastTick = 0;
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (now - lastTick < 83) return;
+    lastTick = now;
+    frame++;
+    for (const d of DECKS) {
+      if (d.canvas.isConnected) d.step();
+      else DECKS.delete(d);
+    }
+    if (REDUCED || frame % 2) return;
+    for (const b of BOTS) {
+      if (b.el.isConnected) b.draw(frame / 2);
+      else BOTS.delete(b);
+    }
+  }
+
+  // ---- API ----
+  async function api(path, body) {
+    const res = await fetch(path, {
+      method: body ? "POST" : "GET",
+      headers: body ? { "Content-Type": "application/json" } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    if (!res.ok) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { data });
+    return data;
+  }
+
+  // ---- Pipeline: the same eight stops drive the strip and the walkthrough ----
+  const STEPS = [
+    { key: "you", icon: "you", label: "You", title: "Your moment", scene: sceneYou, say: sayYou, mood: () => "listen" },
+    { key: "state", icon: "state", label: "State", title: "Pack the state", scene: sceneState, say: sayState },
+    { key: "ask", icon: "ask", label: "Ask", title: "Five typed questions", scene: sceneAsk, say: sayAsk },
+    { key: "jev", icon: "chip", label: "Jev", title: "One call to Jev", scene: sceneJev, say: sayJev, mood: () => "think" },
+    { key: "answers", icon: "bars", label: "Answers", title: "Typed answers", scene: sceneAnswers, say: sayAnswers },
+    { key: "spin", icon: "prompt", label: "spin()", title: "Python decides", scene: sceneSpin, say: saySpin },
+    { key: "crate", icon: "crate", label: "Crate", title: "Pull from the crate", scene: sceneCrate, say: sayCrate },
+    { key: "play", icon: "note", label: "Play", title: "Drop the needle", scene: scenePlay, say: sayPlay, mood: (d) => jevbotMood(d) },
+  ];
+
+  function stations(onPick, scale) {
+    return STEPS.map((s, i) => el("li", { class: "stop" },
+      el("button", { class: "station", type: "button", "aria-label": `Step ${i + 1}: ${s.title}`, onclick: () => onPick(i) },
+        el("span", { class: "station-box px" }, icon(s.icon, scale)),
+        el("span", { class: "station-label", text: s.label }))));
+  }
+
+  function lightPipe(list, upTo, { active = -1, waiting = -1, error = -1 } = {}) {
+    [...list.children].forEach((stop, i) => {
+      const button = stop.firstChild;
+      button.classList.toggle("lit", i <= upTo);
+      button.classList.toggle("active", i === active);
+      button.classList.toggle("waiting", i === waiting);
+      button.classList.toggle("error", i === error);
+      stop.classList.toggle("flow", i < upTo);
+    });
+  }
+
+  function movePacket(i) {
+    const stop = $("pipe").children[i];
+    if (!stop) return;
+    const box = stop.querySelector(".station-box").getBoundingClientRect();
+    const wrap = $("pipe-wrap").getBoundingClientRect();
+    const packet = $("packet");
+    const appearing = packet.hidden;
+    packet.classList.toggle("appear", appearing);   // first stop: no slide in from the corner
+    packet.hidden = false;
+    packet.dataset.at = i;
+    packet.style.transform = `translate(${box.left - wrap.left + box.width / 2 - 13.5}px, ${box.top - wrap.top - 28}px)`;
+    if (appearing) requestAnimationFrame(() => packet.classList.remove("appear"));
+  }
+
+  let pipeRun = 0;
+  async function runPipe(from, to, { waitAt = -1 } = {}) {
+    const run = ++pipeRun;
+    for (let i = from; i <= to; i++) {
+      if (run !== pipeRun) return;
+      lightPipe($("pipe"), i, { active: i, waiting: i === waitAt ? i : -1 });
+      movePacket(i);
+      if (i < to) await sleep(230);
+    }
+  }
+
+  // ---- Spin ----
+  function setLoading(on) {
+    $("spin").disabled = on;
+    $("spin").textContent = on ? "Spinning…" : "Spin ▸";
+    document.body.classList.toggle("stage-loading", on);
+    deck.setMode(on ? "loading" : current ? "playing" : "idle");
+    if (on) {
+      deckBot.setMood("think");
+      brandBot.setMood("think");
+      $("gate-options").replaceChildren();
+      $("bubble-text").textContent = "Asking Jev five questions in one call…";
+      $("pipe-status").textContent = "Five questions in flight. Waiting on Jev…";
+    }
+  }
+
+  function showError(message) {
+    $("error").hidden = !message;
+    $("error").textContent = message ? `⚠ ${message}` : "";
+  }
+
+  async function doSpin() {
+    const message = $("moment").value.trim();
+    if (!message) {
+      showError("Describe your moment first.");
+      return false;
+    }
+    showError("");
+    setLoading(true);
+    const intro = runPipe(0, 3, { waitAt: 3 });
+    try {
+      const data = await api("/api/spin", { message, time: $("clock").value || null });
+      await intro;
+      render(data);
+      runPipe(4, 7);
+      return true;
+    } catch (err) {
+      await intro;
+      lightPipe($("pipe"), 3, { error: 3 });
+      $("pipe-status").textContent = "The Jev call failed, so there was nothing to decide.";
+      $("bubble-text").textContent = `Hmm. ${err.message}`;
+      deckBot.setMood("confused");
+      brandBot.setMood("confused");
+      showError(err.message);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function resolveVibe(vibe) {
+    showError("");
+    try {
+      render(await api("/api/resolve", { id: current.id, vibe }));
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  // ---- Render ----
+  function render(data) {
+    current = data;
+    const { spin, answers } = data;
+
+    deck.setVibe(spin.vibe);
+    deck.setMode("playing");
+    $("query").textContent = spin.query;
+    $("meta").textContent = `${spin.vibe} · energy ${spin.energy_level} — ${shortLevel(spin.energy_level)}`;
+    $("play").href = spin.url;
+    $("sp-now").hidden = true;
+    renderPlayControls();
+    if (SPOTIFY.connected && $("autoplay").checked) playOnSpotify();
+
+    const mood = jevbotMood(data);
+    deckBot.setMood(mood);
+    brandBot.setMood(mood);
+    renderBubble(data);
+
+    $("answers").hidden = false;
+    $("call-meta").textContent =
+      `1 call · ${Object.keys(answers).length} questions · ${data.model}` +
+      (data.input_tokens != null ? ` · ${data.input_tokens} input tokens` : "");
+    $("pipe-status").textContent = "One call, five answers, one record. Click any stop to walk through this spin.";
+    $("vibe-chart").replaceChildren(vibeChart(answers.vibe, spin));
+    $("vibe-conf").replaceChildren(vibeConfidence(answers.vibe));
+    $("energy-chart").replaceChildren(energyChart(answers.energy, spin));
+    $("energy-conf").replaceChildren(energyConfidence(answers.energy));
+    $("nouls").replaceChildren(...noulMeters(data));
+    $("gates").replaceChildren(...gateRows(data));
+    $("reasons").replaceChildren(...spin.reasons.map((r) => el("li", { text: r })));
+    $("crate").replaceChildren(crateView(data));
+    renderTable(answers);
+    if ($("tour").open) tour.refresh();
+  }
+
+  function pickedVibe(spin) {
+    return spin.vibe === "uplift" ? "melancholy" : spin.vibe;
+  }
+
+  function gateButtons(data) {
+    const { spin, answers } = data;
+    return spin.ask_listener.map((vibe) =>
+      el("button", { class: "btn px", type: "button", onclick: () => resolveVibe(vibe) },
+        icon(vibe, 2), vibe, el("span", { class: "num", text: fmt(answers.vibe.probabilities[vibe]) })));
+  }
+
+  function renderBubble(data) {
+    const { spin, answers } = data;
+    const ask = spin.ask_listener;
+    let text;
+    if (data.resolved) {
+      text = `Got it: ${pickedVibe(spin)}${spin.vibe === "uplift" ? ", flipped to uplift" : ""}. Re-spun in Python with 0 extra Jev calls.`;
+    } else if (ask.length) {
+      text = `I'm only ${fmt(answers.vibe.confidence)} sure about the vibe, under my ${fmt(CONFIG.thresholds.vibe_confidence_floor)} floor. Playing ${answers.vibe.choice} for now. Which is it?`;
+    } else {
+      text = `${spin.vibe}, energy ${spin.energy_level}. Dropping the needle on “${spin.query}”.`;
+    }
+    $("bubble-text").textContent = text;
+    $("gate-options").replaceChildren(...(ask.length ? gateButtons(data) : []));
+  }
+
+  // ---- Charts: LED segments ----
+  function segs(p, n, { pick = false, vertical = false } = {}) {
+    const lit = Math.round(p * n);
+    return el("div", { class: `seg${vertical ? " v" : ""}${pick ? " is-pick" : ""}`, style: { "--n": n } },
+      Array.from({ length: n }, (_, i) => {
+        const idx = vertical ? n - 1 - i : i;   // columns fill bottom-up
+        return el("i", { class: idx < lit ? "on" : null, style: { "--c": idx } });
+      }));
+  }
+
+  function vibeChart(vibe, spin) {
+    const highlight = spin.vibe in vibe.probabilities ? spin.vibe : vibe.choice;
+    return el("div", { class: "hbars" }, Object.entries(vibe.probabilities)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, p]) =>
+        el("div", { class: "hbar-row", ...tipAttrs(fmt(p), `P(${name})${name === vibe.choice ? " · Jev's top pick" : ""}`) },
+          el("span", { class: "hbar-label" }, icon(name, 2), el("span", { text: name })),
+          segs(p, 20, { pick: name === highlight }),
+          el("span", { class: "num", text: fmt(p) }))));
+  }
+
+  function energyChart(energy, spin) {
+    const n = CONFIG.energy_levels.length;
+    // Column centres sit at (i + 0.5) / n, so the expected score maps onto the same axis
+    const left = `${((energy.score + 0.5) / n) * 100}%`;
+    return el("div", { class: "eq" },
+      el("div", { class: "score-label-row" },
+        el("span", { class: "score-label", style: { left }, text: `score ${fmt(energy.score)}` })),
+      el("div", { class: "eq-plot" },
+        CONFIG.energy_levels.map((_, i) => {
+          const p = energy.probabilities[i] ?? 0;
+          return el("div", { class: "eq-col", ...tipAttrs(fmt(p), `P(level ${i} · ${shortLevel(i)})`) },
+            el("span", { class: "num", text: fmt(p) }),
+            segs(p, 10, { pick: i === spin.energy_level, vertical: true }));
+        }),
+        el("div", { class: "score-line", style: { left } })),
+      el("div", { class: "xlabels" },
+        CONFIG.energy_levels.map((_, i) => el("span", {}, el("b", { text: i }), shortLevel(i)))));
+  }
+
+  function meterBlock({ name, question, value, tick, tipLabel, rule, effect }) {
+    return el("div", { class: "meter-block" },
+      el("div", { class: "meter-head" },
+        el("span", {}, el("span", { class: "name", text: name }), question ? el("span", { class: "q", text: ` · ${question}` }) : null),
+        el("span", { class: "val", text: fmt(value) })),
+      el("div", { class: "meter", ...tipAttrs(fmt(value), tipLabel) },
+        segs(value, 20),
+        el("span", { class: "meter-tick", style: { left: `${tick * 100}%` } })),
+      el("div", { class: "meter-foot" },
+        el("span", { text: rule }),
+        el("span", { class: "effect", text: effect })));
+  }
+
+  function vibeConfidence(vibe) {
+    const floor = CONFIG.thresholds.vibe_confidence_floor;
+    return meterBlock({
+      name: "confidence", value: vibe.confidence, tick: floor,
+      tipLabel: "How peaked the probabilities are",
+      rule: `floor ${fmt(floor)}`,
+      effect: vibe.confidence < floor ? "below → jevbot asks you" : "above → jevbot plays it",
+    });
+  }
+
+  function energyConfidence(energy) {
+    const floor = CONFIG.thresholds.energy_confidence_floor;
+    return meterBlock({
+      name: "confidence", value: energy.confidence, tick: floor,
+      tipLabel: "How peaked the level probabilities are",
+      rule: `floor ${fmt(floor)}`,
+      effect: energy.confidence < floor ? "below → lean calmer" : "above → likeliest level",
+    });
+  }
+
+  function noulMeters({ spin, answers }) {
+    const T = CONFIG.thresholds;
+    const lift = spin.vibe === "uplift"
+      ? "✓ flipped to uplift"
+      : pickedVibe(spin) === "melancholy" ? "— stayed melancholy" : "— unused";
+    return [
+      meterBlock({
+        name: "lyrics_ok", question: "vocals fit?", value: answers.lyrics_ok.noul, tick: T.lyrics_ok,
+        tipLabel: "P(yes): vocals fit the moment",
+        rule: `< ${fmt(T.lyrics_ok)} → instrumental`,
+        effect: spin.query.endsWith(" instrumental") ? "✓ added “instrumental”" : "— kept vocals",
+      }),
+      meterBlock({
+        name: "nostalgic", question: "throwbacks?", value: answers.nostalgic.noul, tick: T.nostalgia_likely,
+        tipLabel: "P(yes): in the mood for throwbacks",
+        rule: `≥ ${fmt(T.nostalgia_likely)} → throwback`,
+        effect: spin.query.startsWith("throwback ") ? "✓ added “throwback”" : "— no throwback",
+      }),
+      meterBlock({
+        name: "wants_lift", question: "change the mood?", value: answers.wants_lift.noul, tick: T.lift_likely,
+        tipLabel: "P(yes): wants music to change their mood (speculative)",
+        rule: `≥ ${fmt(T.lift_likely)} & melancholy → uplift`,
+        effect: lift,
+      }),
+    ];
+  }
+
+  // ---- spin() as a row of gates. Outcomes come from Python's result, not re-computed here ----
+  function gates(data) {
+    const { spin, answers } = data;
+    const T = CONFIG.thresholds;
+    const base = data.resolved ? pickedVibe(spin) : answers.vibe.choice;
+    const ask = spin.ask_listener;
+    const energyOk = answers.energy.confidence >= T.energy_confidence_floor;
+    const throwback = spin.query.startsWith("throwback ");
+    const instrumental = spin.query.endsWith(" instrumental");
+    return [
+      data.resolved
+        ? { name: "vibe", test: "you broke the tie", result: "you", effect: `vibe = ${base}` }
+        : {
+          name: "vibe",
+          test: `confidence ${fmt(answers.vibe.confidence)} ≥ ${fmt(T.vibe_confidence_floor)}?`,
+          result: ask.length ? "no" : "yes",
+          effect: ask.length ? `play ${base} for now, ask you: ${ask.join(" or ")}` : `play ${base}`,
+        },
+      {
+        name: "wants_lift",
+        test: `melancholy and noul ${fmt(answers.wants_lift.noul)} ≥ ${fmt(T.lift_likely)}?`,
+        result: spin.vibe === "uplift" ? "yes" : base === "melancholy" ? "no" : "skip",
+        effect: spin.vibe === "uplift" ? "flip the mood to uplift" : base === "melancholy" ? "stay melancholy" : "not melancholy: asked, never used",
+      },
+      {
+        name: "energy",
+        test: `confidence ${fmt(answers.energy.confidence)} ≥ ${fmt(T.energy_confidence_floor)}?`,
+        result: energyOk ? "yes" : "no",
+        effect: `${energyOk ? "likeliest level" : "unsure, lean calmer"} → level ${spin.energy_level}`,
+      },
+      {
+        name: "nostalgic",
+        test: `noul ${fmt(answers.nostalgic.noul)} ≥ ${fmt(T.nostalgia_likely)}?`,
+        result: throwback ? "yes" : "no",
+        effect: throwback ? "add “throwback”" : "no throwback",
+      },
+      {
+        name: "lyrics_ok",
+        test: `noul ${fmt(answers.lyrics_ok.noul)} < ${fmt(T.lyrics_ok)}?`,
+        result: instrumental ? "yes" : "no",
+        effect: instrumental ? "add “instrumental”" : "keep the vocals",
+      },
+    ];
+  }
+
+  function gateRows(data) {
+    return gates(data).map((g, i) =>
+      el("li", { class: "gate-row", style: { "--i": i } },
+        el("span", { class: "gate-name", text: g.name }),
+        el("span", { class: "gate-test", text: g.test }),
+        el("span", { class: `verdict px v-${g.result}`, text: g.result }),
+        el("span", { class: "gate-effect", text: `→ ${g.effect}` })));
+  }
+
+  // ---- The crate: vibe picks the row, energy level picks the column ----
+  function crateView(data, schedule) {
+    const vibes = Object.keys(CONFIG.crate);
+    const { vibe, energy_level: lvl, query } = data.spin;
+    const genre = CONFIG.crate[vibe][lvl];
+    const table = el("table", { class: "crate" },
+      el("thead", {}, el("tr", {},
+        el("th", { class: "corner", text: "vibe ↓ energy →" }),
+        CONFIG.energy_levels.map((_, i) =>
+          el("th", { "data-col": i, class: i === lvl ? "on" : null }, el("b", { text: i }), shortLevel(i))))),
+      el("tbody", {}, vibes.map((v) =>
+        el("tr", { class: v === vibe ? "on" : null },
+          el("th", { scope: "row" }, icon(v, 2), el("span", { text: v })),
+          CONFIG.crate[v].map((g, i) => el("td", {
+            "data-col": i,
+            class: v === vibe && i === lvl ? "pick" : v === vibe || i === lvl ? "cross" : null,
+            text: g,
+          }))))));
+    const words = [];
+    if (query.startsWith("throwback ")) words.push(["throwback", "nostalgic noul"]);
+    words.push([genre, `CRATE["${vibe}"][${lvl}]`]);
+    if (query.endsWith(" instrumental")) words.push(["instrumental", "lyrics_ok noul"]);
+    const wrap = el("div", { class: "crate-wrap" },
+      el("div", { class: "crate-scroll" }, table),
+      el("p", { class: "crate-note", text: "uplift isn't a Jev option: Python derives it from melancholy + wants_lift." }),
+      el("div", { class: "assembly" },
+        el("span", { class: "eyebrow", text: "Spotify search =" }),
+        words.map(([w, src], i) => el("span", { class: `word px${w === genre ? " main" : ""}`, style: { "--i": i } },
+          el("b", { text: w }), el("small", { text: src })))));
+    if (schedule) scanCrate(wrap, vibes.indexOf(vibe), lvl, schedule);
+    return wrap;
+  }
+
+  // Walkthrough only: sweep rows, then columns, then land on the cell
+  function scanCrate(wrap, row, col, schedule) {
+    wrap.classList.add("scanning");
+    const rows = [...wrap.querySelectorAll("tbody tr")];
+    const cells = [...wrap.querySelectorAll("[data-col]")];
+    let t = 350;
+    for (let r = 0; r <= row; r++, t += 170) schedule(t, () => rows.forEach((tr, i) => tr.classList.toggle("scan", i === r)));
+    for (let c = 0; c <= col; c++, t += 220) schedule(t, () => cells.forEach((cell) => cell.classList.toggle("scan", Number(cell.dataset.col) === c)));
+    schedule(t + 120, () => {
+      rows.forEach((tr) => tr.classList.remove("scan"));
+      cells.forEach((cell) => cell.classList.remove("scan"));
+      wrap.classList.replace("scanning", "landed");
+    });
+  }
+
+  function renderTable(answers) {
+    const probs = (p) => Object.entries(p).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${fmt(v)}`).join(" · ");
+    const rows = Object.entries(answers).map(([name, a]) => {
+      const answer = a.type === "choice" ? a.choice : a.type === "score" ? fmt(a.score) : fmt(a.noul);
+      return el("tr", {},
+        el("td", { text: name }),
+        el("td", { text: a.type[0].toUpperCase() + a.type.slice(1) }),
+        el("td", { class: "num", text: answer }),
+        el("td", { class: "num", text: a.confidence != null ? fmt(a.confidence) : "—" }),
+        el("td", { text: a.probabilities ? probs(a.probabilities) : "—" }));
+    });
+    $("table-body").replaceChildren(...rows);
+  }
+
+  // ---- Walkthrough scenes: each draws one stop of the pipeline from the current spin ----
+  function codeSpans(text) {
+    return text.split("`").map((part, i) => (i % 2 ? el("code", { text: part }) : part)).filter((part) => part !== "");
+  }
+
+  function sceneYou(d) {
+    return el("div", { class: "scene-you" },
+      new Bot(8, "listen").el,
+      el("div", { class: "you-talk" },
+        el("div", { class: "speech px" },
+          el("span", { class: "speech-who", text: "YOU" }),
+          el("p", { class: "speech-text", text: `“${d.state.listener.message}”` })),
+        el("div", { class: "clock-chip px" },
+          icon("clock", 3),
+          el("span", { text: `${d.state.clock.local_time} · ${d.state.clock.weekday}` }),
+          el("span", { class: "muted", text: "(from the clock, not from you)" }))));
+  }
+
+  function jsonView(obj, marks) {
+    const lines = [];
+    const line = (indent, parts, hl, tag) => lines.push(el("div", { class: `jl${hl ? " hl" : ""}` },
+      "  ".repeat(indent), parts, tag ? el("span", { class: "tag", text: tag }) : null));
+    line(0, ["{"]);
+    const keys = Object.keys(obj);
+    keys.forEach((k, i) => {
+      const mark = marks[k];
+      line(1, [el("span", { class: "j-key", text: `"${k}"` }), ": {"], mark, mark);
+      const sub = Object.keys(obj[k]);
+      sub.forEach((sk, j) => line(2, [
+        el("span", { class: "j-key", text: `"${sk}"` }), ": ",
+        el("span", { class: "j-str", text: JSON.stringify(obj[k][sk]) }),
+        j < sub.length - 1 ? "," : "",
+      ], mark));
+      line(1, [`}${i < keys.length - 1 ? "," : ""}`], mark);
+    });
+    line(0, ["}"]);
+    return el("pre", { class: "code" }, lines);
+  }
+
+  function sceneState(d) {
+    const code = [
+      "def build_state(message, now):",
+      "    return {",
+      '        "listener": {"message": message},',
+      '        "clock": {',
+      '            "local_time": now.strftime("%H:%M"),',
+      '            "weekday": now.strftime("%A"),',
+      "        },",
+      "    }",
+    ].join("\n");
+    return el("div", {},
+      el("div", { class: "scene-cols reveal" },
+        el("div", { class: "codecard px", style: { "--i": 0 } },
+          el("div", { class: "codecard-head", text: "dj.py · build_state()" }),
+          el("pre", { class: "code", text: code })),
+        el("div", { class: "arrow-px", style: { "--i": 1 } }, sprite(ICONS.arrow, 5)),
+        el("div", { class: "codecard px", style: { "--i": 2 } },
+          el("div", { class: "codecard-head", text: "state · sent to Jev" }),
+          jsonView(d.state, { clock: "code knows this" }))),
+      el("p", { class: "refs" }, ...codeSpans("Questions point into it with backticks: `listener.message`, `clock.local_time`.")));
+  }
+
+  function questionCard(name, q) {
+    const text = typeof q.instructions === "string" ? q.instructions : q.instructions.question;
+    let body;
+    if (q.type === "choice") {
+      body = el("div", { class: "q-opts" }, Object.keys(q.criteria).map((k) => el("span", {}, icon(k, 2), k)));
+    } else if (q.type === "score") {
+      body = el("ol", { class: "q-ladder" }, q.criteria.map((c, i) => el("li", {}, el("b", { text: i }), c.split(":")[0])));
+    } else {
+      body = el("div", { class: "q-noul" }, el("span", { text: "0" }), segs(0.5, 10), el("span", { text: "1" }),
+        el("span", { class: "q-noul-cap", text: "P(yes)" }));
+    }
+    return el("article", { class: `qcard px${name === "wants_lift" ? " spec" : ""}` },
+      el("header", { class: "qcard-head" },
+        el("span", { class: "badge", text: q.type.toUpperCase() }),
+        el("b", { text: name })),
+      el("p", { class: "qcard-text" }, ...codeSpans(text)),
+      body,
+      name === "wants_lift" ? el("span", { class: "sticker", text: "speculative" }) : null);
+  }
+
+  function sceneAsk() {
+    const cards = Object.entries(CONFIG.questions).map(([name, q], i) => {
+      const card = questionCard(name, q);
+      card.style.setProperty("--i", i);
+      return card;
+    });
+    return el("div", { class: "qgrid reveal" }, cards);
+  }
+
+  function sceneJev(d) {
+    const names = Object.keys(d.answers);
+    return el("div", { class: "scene-jev" },
+      el("div", { class: "endpoint px" }, new Bot(4, "think").el, el("b", { text: "jevbot" }), el("span", { text: "your Python" })),
+      el("div", { class: "wire" },
+        el("div", { class: "lane lane-req" }, el("span", { class: "wpacket req px", text: `state + ${names.length} Q` })),
+        names.map((n) => el("div", { class: "lane" }, el("span", { class: "wpacket ans px", text: n }))),
+        el("div", { class: "lane-note", text: "answered in parallel · independent of each other" })),
+      el("div", { class: "endpoint jev px" }, icon("chip", 6), el("b", { text: "JEV" }), el("span", { text: d.model })),
+      el("div", { class: "wire-foot" },
+        el("code", { text: "POST https://api.typesafe.ai/v1/systemone" }),
+        el("span", { text: ` · 1 round trip · ${d.input_tokens} tokens in · ${d.output_tokens ?? "?"} out` })));
+  }
+
+  function sceneAnswers(d) {
+    const { answers, spin } = d;
+    return el("div", { class: "scene-answers animate reveal" },
+      el("section", { class: "mini px", style: { "--i": 0 } },
+        el("h4", {}, "vibe ", el("span", { class: "kind", text: "· Choice" })),
+        vibeChart(answers.vibe, spin), vibeConfidence(answers.vibe)),
+      el("section", { class: "mini px", style: { "--i": 1 } },
+        el("h4", {}, "energy ", el("span", { class: "kind", text: "· Score" })),
+        energyChart(answers.energy, spin), energyConfidence(answers.energy)),
+      el("section", { class: "mini px", style: { "--i": 2 } },
+        el("h4", {}, "modifiers ", el("span", { class: "kind", text: "· Noul" })),
+        noulMeters(d)));
+  }
+
+  function sceneSpin(d) {
+    return el("div", { class: "scene-spin" },
+      el("ol", { class: "gates reveal" }, gateRows(d)),
+      el("div", { class: "codecard px" },
+        el("div", { class: "codecard-head", text: "what spin() logged" }),
+        el("ol", { class: "logged reveal" }, d.spin.reasons.map((r, i) => el("li", { text: r, style: { "--i": i + 5 } })))));
+  }
+
+  function sceneCrate(d) {
+    return crateView(d, (ms, fn) => tour.later(ms, fn));
+  }
+
+  function scenePlay(d) {
+    const canvas = el("canvas", { class: "deck-canvas", width: DECK_W, height: DECK_H, "aria-hidden": "true" });
+    const tourDeck = new Deck(canvas);
+    tourDeck.setVibe(d.spin.vibe);
+    tourDeck.setMode("playing");
+    const stat = (value, label) => el("div", {}, el("b", { text: value }), el("span", { text: label }));
+    return el("div", { class: "scene-play" },
+      canvas,
+      el("div", { class: "play-side" },
+        el("div", { class: "eyebrow", text: "Now playing" }),
+        el("div", { class: "hero", text: d.spin.query }),
+        el("div", { class: "meta", text: `${d.spin.vibe} · energy ${d.spin.energy_level} — ${shortLevel(d.spin.energy_level)}` }),
+        el("div", { class: "tally" }, stat(Object.keys(d.answers).length, "typed questions"), stat("1", "Jev call"), stat("0", "songs named by Jev")),
+        d.spin.ask_listener.length ? el("div", { class: "gate-options" }, gateButtons(d)) : null),
+      new Bot(6, jevbotMood(d)).el);
+  }
+
+  // ---- Narration ----
+  function sayYou(d) {
+    return `You said “${clip(d.state.listener.message)}” I can't search Spotify with that. So I turn it into five small questions Jev can answer.`;
+  }
+  function sayState(d) {
+    const { local_time, weekday } = d.state.clock;
+    return `First, Python packs your words into \`state\`. It adds what code already knows: it's ${local_time} on a ${weekday}. Jev reads the clock instead of guessing it.`;
+  }
+  function sayAsk() {
+    return "Every question has a type. A Choice picks one of a closed set. A Score lands on an ordered ladder. A Noul is a yes-probability. `wants_lift` is speculative: it only matters if you're melancholy, but asking is nearly free.";
+  }
+  function sayJev(d) {
+    return `All five go out in ONE request to ${d.model}. Jev answers them in parallel and independently: ${d.input_tokens} tokens in, one round trip. A second call only pays off when one answer changes the next question.`;
+  }
+  function sayAnswers(d) {
+    const a = d.answers;
+    return `Back come numbers, not prose. \`vibe\` is ${a.vibe.choice} at ${fmt(a.vibe.confidence)} confidence. \`energy\` scored ${fmt(a.energy.score)} on the 0–3 ladder. The Nouls are plain probabilities of yes.`;
+  }
+  function saySpin(d) {
+    const { spin, answers } = d;
+    const floor = fmt(CONFIG.thresholds.vibe_confidence_floor);
+    let first;
+    if (d.resolved) first = `You settled the vibe: ${pickedVibe(spin)}.`;
+    else if (spin.ask_listener.length) first = `Vibe confidence is ${fmt(answers.vibe.confidence)}, under the ${floor} floor, so I ask you instead of guessing.`;
+    else first = `Vibe confidence is ${fmt(answers.vibe.confidence)}, over the ${floor} floor, so I trust “${answers.vibe.choice}”.`;
+    const lift = spin.vibe === "uplift" ? " You sounded low but wanted a lift, so I flipped to uplift." : "";
+    return `${first}${lift} Every threshold lives in Python, not in a prompt. Change a number in \`dj.py\` and I decide differently.`;
+  }
+  function sayCrate(d) {
+    const { vibe, energy_level: lvl, query } = d.spin;
+    let mods = "";
+    if (query.startsWith("throwback ")) mods += " Nostalgia adds “throwback”.";
+    if (query.endsWith(" instrumental")) mods += " Lyrics would distract, so I add “instrumental”.";
+    return `The vibe picks the row and the energy picks the column: \`CRATE["${vibe}"][${lvl}]\` is “${CONFIG.crate[vibe][lvl]}”.${mods} The Spotify search is “${query}”.`;
+  }
+  function sayPlay(d) {
+    const ask = d.spin.ask_listener;
+    let tail = "";
+    if (ask.length) tail = ` I wasn't sure about the vibe, though. Pick ${ask.join(" or ")} and I'll re-spin in Python with zero extra Jev calls.`;
+    else if (d.resolved) tail = " You broke the tie, and I re-spun without calling Jev again.";
+    return `Jev never named a song. It answered five typed questions, and Python did the rest.${tail}`;
+  }
+
+  // ---- Walkthrough controller: RPG-style dialog, typewriter text, stepper ----
+  function segmentsOf(text) {
+    return text.split("`").map((t, i) => ({ t, code: i % 2 === 1 })).filter((s) => s.t);
+  }
+  function typeInto(target, segments, count) {
+    const nodes = [];
+    let left = count;
+    for (const s of segments) {
+      if (left <= 0) break;
+      const t = s.t.slice(0, left);
+      left -= s.t.length;
+      nodes.push(s.code ? el("code", { text: t }) : t);
+    }
+    target.replaceChildren(...nodes);
+  }
+
+  const tour = {
+    step: 0,
+    auto: false,
+    timers: [],
+    typer: null,
+    autoTimer: null,
+    finishTyping: null,
+    open(step = 0) {
+      if (!$("tour").open) $("tour").showModal();
+      this.go(step);
+    },
+    later(ms, fn) {
+      this.timers.push(setTimeout(fn, REDUCED ? 0 : ms));
+    },
+    clear() {
+      this.timers.forEach(clearTimeout);
+      this.timers = [];
+      clearInterval(this.typer);
+      this.typer = null;
+      clearTimeout(this.autoTimer);
+    },
+    go(i) {
+      this.clear();
+      this.step = i;
+      const s = STEPS[i];
+      $("tour-count").textContent = `Step ${i + 1} / ${STEPS.length}`;
+      $("tour-title").textContent = s.title;
+      lightPipe($("tour-pipe"), i, { active: i });
+      $("tour-scene").replaceChildren(el("div", { class: `scene scene-wrap-${s.key}` }, s.scene(current)));
+      $("tour-scene").parentElement.scrollTop = 0;
+      $("tour-prev").disabled = i === 0;
+      $("tour-next").textContent = i === STEPS.length - 1 ? "Done ✓" : "Next ▸";
+      this.type(s.say(current));
+    },
+    refresh() {
+      this.go(this.step);
+    },
+    type(text) {
+      const segments = segmentsOf(text);
+      const total = segments.reduce((n, s) => n + s.t.length, 0);
+      $("tour-sr").textContent = text.replaceAll("`", "");
+      $("tour-caret").hidden = true;
+      portrait.setMood("talk");
+      let shown = 0;
+      this.finishTyping = () => {
+        clearInterval(this.typer);
+        this.typer = null;
+        typeInto($("tour-text"), segments, total);
+        portrait.setMood(STEPS[this.step].mood?.(current) ?? "idle");
+        $("tour-caret").hidden = false;
+        if (this.auto) this.autoTimer = setTimeout(() => this.advance(), 2800);
+      };
+      if (REDUCED) return this.finishTyping();
+      typeInto($("tour-text"), segments, 0);
+      this.typer = setInterval(() => {
+        shown += 2;
+        typeInto($("tour-text"), segments, shown);
+        if (shown >= total) this.finishTyping();
+      }, 28);
+    },
+    advance() {
+      if (this.step < STEPS.length - 1) this.go(this.step + 1);
+      else this.setAuto(false);
+    },
+    next() {
+      if (this.typer) return this.finishTyping();   // first press finishes the line, like an RPG
+      if (this.step === STEPS.length - 1) return $("tour").close();
+      this.go(this.step + 1);
+    },
+    prev() {
+      if (this.step > 0) this.go(this.step - 1);
+    },
+    setAuto(on) {
+      this.auto = on;
+      clearTimeout(this.autoTimer);
+      $("tour-auto").setAttribute("aria-pressed", String(on));
+      $("tour-auto").textContent = on ? "Pause ❚❚" : "Auto ▸▸";
+      if (on && !this.typer) this.autoTimer = setTimeout(() => this.advance(), 900);
+    },
+  };
+
+  // Without a spin there's nothing to walk through, so spin a sample first
+  async function openTour(step = 0) {
+    if (!current) {
+      if (!CONFIG) return;
+      if (!$("moment").value.trim()) {
+        const sample = CONFIG.samples.find((s) => s.label === "sunday") ?? CONFIG.samples[0];
+        $("moment").value = sample.message;
+      }
+      if (!(await doSpin())) return;
+    }
+    tour.open(step);
+  }
+
+  // ---- Spotify ----
+  async function loadSpotify() {
+    try {
+      SPOTIFY = await api("/api/spotify/status", {});
+    } catch {
+      SPOTIFY = { configured: false, connected: false };
+    }
+    renderSpotifyStatus();
+    renderPlayControls();
+  }
+
+  function renderSpotifyStatus() {
+    const box = $("sp-status");
+    if (!SPOTIFY.configured) {
+      box.replaceChildren(el("span", { class: "muted", title: "Add SPOTIFY_CLIENT_ID to .env and restart the server", text: "Spotify not set up" }));
+    } else if (!SPOTIFY.connected) {
+      box.replaceChildren(el("a", { class: "btn small px", href: "/login", onclick: rememberMoment, text: "Connect Spotify" }));
+    } else {
+      box.replaceChildren(
+        el("span", { class: "sp-dot", "aria-hidden": "true" }),
+        el("span", { text: `Spotify · ${SPOTIFY.user || "connected"}` }),
+        el("button", { class: "link-btn", type: "button", onclick: disconnectSpotify, text: "Disconnect" }));
+    }
+    $("autoplay-row").hidden = !SPOTIFY.connected;
+  }
+
+  // The loudest button is the next step: play if connected, else connect, else open the search
+  function renderPlayControls() {
+    const hasSpin = current != null;
+    const canPlay = hasSpin && SPOTIFY.connected;
+    const canConnect = hasSpin && SPOTIFY.configured && !SPOTIFY.connected;
+    $("sp-play").hidden = !canPlay;
+    $("sp-connect").hidden = !canConnect;
+    $("play").hidden = !hasSpin;
+    $("sp-play").classList.toggle("primary", canPlay);
+    $("sp-connect").classList.toggle("primary", canConnect);
+    $("play").classList.toggle("primary", !canPlay && !canConnect);
+  }
+
+  async function playOnSpotify() {
+    if (!current) return;
+    const button = $("sp-play");
+    button.disabled = true;
+    button.textContent = "Starting…";
+    try {
+      showPlayed(await api("/api/spotify/play", { query: current.spin.query }));
+    } catch (err) {
+      showSpotifyNote(`⚠ ${err.message}`);
+      if (err.data?.reconnect) loadSpotify();
+    } finally {
+      button.disabled = false;
+      button.textContent = "▶ Play on my Spotify";
+    }
+  }
+
+  function showPlayed({ playlist, device }) {
+    deck.setArt(playlist.image);   // the cover becomes a pixel record label
+    $("sp-now").hidden = false;
+    $("sp-now").replaceChildren(
+      "▶ Playing ",
+      el("a", { href: playlist.url, target: "_blank", rel: "noopener", text: playlist.name }),
+      playlist.owner ? ` by ${playlist.owner}` : "",
+      ` on ${device.name}`);
+  }
+
+  function showSpotifyNote(text) {
+    $("sp-now").hidden = false;
+    $("sp-now").textContent = text;
+  }
+
+  async function disconnectSpotify() {
+    await api("/api/spotify/disconnect", {}).catch(() => {});
+    loadSpotify();
+  }
+
+  // Logging in leaves the page, so keep what the listener typed
+  function rememberMoment() {
+    sessionStorage.setItem("jev-dj-moment", $("moment").value);
+  }
+
+  // ---- Tooltip: hover and keyboard focus show the same readout ----
+  const tip = $("tip");
+  function showTip(target, x, y) {
+    tip.replaceChildren(el("strong", { text: target.dataset.tipValue }), el("span", { text: target.dataset.tipLabel }));
+    tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    tip.style.left = `${Math.min(x + 14, innerWidth - r.width - 8)}px`;
+    tip.style.top = `${Math.max(y - r.height - 14, 8)}px`;
+  }
+  const hideTip = () => { tip.hidden = true; };
+  document.addEventListener("pointermove", (e) => {
+    const t = e.target.closest?.("[data-tip-value]");
+    if (t && !$("tour").open) showTip(t, e.clientX, e.clientY);
+    else hideTip();
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = e.target.closest?.("[data-tip-value]");
+    if (!t || $("tour").open) return hideTip();
+    const r = t.getBoundingClientRect();
+    showTip(t, r.left + r.width / 2, r.top);
+  });
+  document.addEventListener("focusout", hideTip);
+  addEventListener("scroll", hideTip, { passive: true });
+
+  // ---- Wiring ----
+  const savedTheme = localStorage.getItem("jev-dj-theme");
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  readDeckColors();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readDeckColors);
+
+  const deck = new Deck($("deck"));
+  const deckBot = new Bot(5, "idle");
+  const brandBot = new Bot(2, "idle");
+  const portrait = new Bot(4, "idle");
+  $("deck-bot").replaceWith(deckBot.el);
+  $("brand-bot").replaceWith(brandBot.el);
+  $("tour-bot").replaceWith(portrait.el);
+  $("bubble-tail").append(sprite(ICONS.tail, 3));
+  $("theme").append(icon("theme", 2));
+  $("tour-close").append(icon("close", 2));
+  $("pipe").replaceChildren(...stations((i) => openTour(i), 4));
+  $("tour-pipe").replaceChildren(...stations((i) => tour.go(i), 3));
+  $("packet").append(sprite(ICONS.envelope, 3));
+  const faviconSVG = jevbotGrid().map((row, y) => [...row].map((c, x) => {
+    const fill = { o: "#d97757", k: "#141413", h: "#3d3d3a" }[c];
+    return fill ? `<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>` : "";
+  }).join("")).join("");
+  $("favicon").href = `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -3 18 18" shape-rendering="crispEdges">${faviconSVG}</svg>`)}`;
+  requestAnimationFrame(loop);
+
+  $("spin").addEventListener("click", doSpin);
+  $("sp-play").addEventListener("click", playOnSpotify);
+  $("sp-connect").addEventListener("click", rememberMoment);
+  $("tour-open").addEventListener("click", () => openTour(0));
+  $("tour-open-2").addEventListener("click", () => openTour(0));
+  $("tour-next").addEventListener("click", () => tour.next());
+  $("tour-prev").addEventListener("click", () => tour.prev());
+  $("tour-auto").addEventListener("click", () => tour.setAuto(!tour.auto));
+  $("tour-close").addEventListener("click", () => $("tour").close());
+  $("dialog-box").addEventListener("click", () => tour.next());
+  $("tour").addEventListener("close", () => {
+    tour.clear();
+    tour.setAuto(false);
+  });
+  $("tour").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); tour.next(); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); tour.prev(); }
+  });
+  addEventListener("resize", () => {
+    const at = $("packet").dataset.at;
+    if (at != null) movePacket(Number(at));
+  });
+  $("autoplay").checked = localStorage.getItem("jev-dj-autoplay") === "1";
+  $("autoplay").addEventListener("change", (e) => localStorage.setItem("jev-dj-autoplay", e.target.checked ? "1" : "0"));
+  $("moment").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) doSpin();
+  });
+  $("table-toggle").addEventListener("click", () => {
+    const open = $("table-view").hidden;
+    $("table-view").hidden = !open;
+    $("table-toggle").setAttribute("aria-expanded", String(open));
+    $("table-toggle").textContent = open ? "Hide table" : "Show as table";
+  });
+  $("theme").addEventListener("click", () => {
+    const dark = getComputedStyle(document.documentElement).colorScheme === "dark";
+    const next = dark ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem("jev-dj-theme", next);
+    readDeckColors();
+  });
+
+  api("/api/config").then((config) => {
+    CONFIG = config;
+    $("samples").replaceChildren(...config.samples.map(({ label, message }) =>
+      el("button", {
+        class: "chip px", type: "button", title: message,
+        onclick: () => { $("moment").value = message; doSpin(); },
+      }, label.replaceAll("_", " "))));
+  }).catch((err) => showError(`Couldn't load config: ${err.message}`));
+
+  // Coming back from Spotify login: restore the moment, report errors, tidy the URL
+  const params = new URLSearchParams(location.search);
+  const savedMoment = sessionStorage.getItem("jev-dj-moment");
+  if (savedMoment) {
+    $("moment").value = savedMoment;
+    sessionStorage.removeItem("jev-dj-moment");
+  }
+  if (params.has("spotify_error")) showError(`Spotify: ${params.get("spotify_error")}`);
+  if (params.has("spotify") || params.has("spotify_error")) history.replaceState(null, "", "/");
+  loadSpotify();
+</script>
+</body>
+</html>
