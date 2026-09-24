@@ -16,9 +16,8 @@ A tiny learning project for [Jev](https://docs.typesafe.ai/) (TypeSafe's System 
 ## Setup
 
 ```bash
-# API key (already in .env locally — never commit it)
-export TYPESAFE_API_KEY=...   # or use the .env file
-
+cp .env.example .env
+# Add your TypeSafe API key to .env (never commit it).
 uv sync
 ```
 
