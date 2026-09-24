@@ -1,61 +1,12 @@
-# jev
-
-A tiny learning project for [Jev](https://docs.typesafe.ai/) (TypeSafe's System One model).
-
-
-## What it teaches
-
-| Concept | Where |
-|---------|--------|
-| Choice / Score / Noul | `src/jev_triage/triage.py` → `build_questions()` |
-| Speculative fan-out | `bug_severity` + `has_repro_steps` asked even when it might not be a bug |
-| Confidence-gated routing | `TOPIC_CONFIDENCE_FLOOR` → `human_review` |
-| Composite scoring | `spam_risk` = weighted nouls in `decide()` |
-
-## Setup
-
-```bash
-cp .env.example .env
-# Add your TypeSafe API key to .env (never commit it).
-uv sync
-```
-
-## Run
-
-```bash
-# Built-in fixtures (billing, bug, account, spam, ambiguous)
-uv run jev-triage --demo
-
-# Your own ticket
-uv run jev-triage "My payouts have been failing for 3 days. Please help ASAP."
-```
-
-## How one call works
-
-```
-state (ticket + policy) + ~8 questions
-        │
-        ▼
-  POST /v1/systemone   (jev-latest)
-        │
-        ▼
- typed answers + probabilities + confidence
-        │
-        ▼
- decide() in Python  →  route / escalate / quarantine / human_review
-```
-
-Questions in one request are evaluated **in parallel and independently**. Asking an extra speculative question is cheap; a second sequential API call is usually the wrong optimization.
-
----
-
 # jev-dj
+
+Describe your moment and the DJ picks the music. Jev never names a song. It answers five typed questions, and `spin()` in Python maps those answers onto a crate of genres we own.
 
 > **New to Jev?** Start with [How jev-dj works](docs/how-jev-dj-works.md): one real spin, stop by stop, with diagrams.
 
 [Browse the screenshots and diagrams](docs/visuals.md).
 
-Describe your moment and the DJ picks the music. Jev never names a song. It answers five typed questions, and `spin()` in Python maps those answers onto a crate of genres we own.
+## What it teaches
 
 | Concept | Where |
 |---------|--------|
@@ -65,6 +16,14 @@ Describe your moment and the DJ picks the music. Jev never names a song. It answ
 | Speculative fan-out | `wants_lift` is asked every time, used only when the vibe is melancholy |
 | Confidence gate → ask the human | `VIBE_CONFIDENCE_FLOOR`; the CLI prompts you to break the tie |
 | Typed responses | `DJAnswers(SystemOneResponse)` + `response_model=` |
+
+## Setup
+
+```bash
+cp .env.example .env
+# Add your TypeSafe API key to .env (never commit it).
+uv sync
+```
 
 ## Run
 

@@ -1,7 +1,7 @@
 [project]
-name = "jev-triage"
+name = "jev-dj"
 version = "0.1.0"
-description = "Learn Jev: support-ticket triage with TypeSafe System One"
+description = "Learn Jev through a DJ that turns typed answers into music picks"
 readme = "README.md"
 authors = [
     { name = "Ryan Junejo", email = "ryanjunejo1@gmail.com" }
@@ -14,7 +14,6 @@ dependencies = [
 ]
 
 [project.scripts]
-jev-triage = "jev_triage:main"
 jev-dj = "jev_dj:main"
 jev-dj-ui = "jev_dj.web:main"
 
@@ -23,4 +22,4 @@ requires = ["uv_build>=0.12.17,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["jev_triage", "jev_dj"]
+module-name = ["jev_dj"]
